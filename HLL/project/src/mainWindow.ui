@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1280</width>
+    <height>920</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>OnLab Studio</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <property name="spacing">
+     <number>3</number>
+    </property>
+    <property name="leftMargin">
+     <number>3</number>
+    </property>
+    <property name="topMargin">
+     <number>3</number>
+    </property>
+    <property name="rightMargin">
+     <number>3</number>
+    </property>
+    <property name="bottomMargin">
+     <number>3</number>
+    </property>
+    <item>
+     <widget class="QSplitter" name="splitter">
+      <property name="minimumSize">
+       <size>
+        <width>3</width>
+        <height>7</height>
+       </size>
+      </property>
+      <property name="autoFillBackground">
+       <bool>false</bool>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">/*QSplitter[orientation=&quot;1&quot;]::handle {
+	border: 1px solid #567dbc;
+	min-width: 2px;	
+	max-width: 2px;
+    min-height: 100px;	
+	max-height: 100px;
+	
+}*/
+/*QSplitte::handle::horizontal {
+	border: 3px dashed blue;
+	margin: 50px 1px;
+	min-width: 10px;	
+	max-width: 10px;
+}*/</string>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Plain</enum>
+      </property>
+      <property name="lineWidth">
+       <number>0</number>
+      </property>
+      <property name="midLineWidth">
+       <number>0</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="opaqueResize">
+       <bool>true</bool>
+      </property>
+      <property name="handleWidth">
+       <number>3</number>
+      </property>
+      <property name="childrenCollapsible">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1280</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuYard_m">
+    <property name="title">
+     <string>Yardım</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
+   <widget class="QMenu" name="menuStudio">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="title">
+     <string>OnLab</string>
+    </property>
+    <addaction name="actionNew_RegAddress"/>
+    <addaction name="actionNew_Parameter"/>
+    <addaction name="separator"/>
+    <addaction name="actionNew_Address_Type"/>
+    <addaction name="actionNew_DeviceType"/>
+    <addaction name="separator"/>
+    <addaction name="actionNew_Menu"/>
+    <addaction name="actionNew_Page"/>
+    <addaction name="actionPair_Menu_Page"/>
+   </widget>
+   <widget class="QMenu" name="menuAyarlar">
+    <property name="title">
+     <string>Ayarlar</string>
+    </property>
+    <addaction name="actionSerial_RTU"/>
+   </widget>
+   <addaction name="menuAyarlar"/>
+   <addaction name="menuStudio"/>
+   <addaction name="menuYard_m"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QToolBar" name="topToolBar">
+   <property name="minimumSize">
+    <size>
+     <width>0</width>
+     <height>0</height>
+    </size>
+   </property>
+   <property name="font">
+    <font>
+     <family>MS Shell Dlg 2</family>
+     <pointsize>8</pointsize>
+    </font>
+   </property>
+   <property name="windowTitle">
+    <string>TopBar</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
+   </property>
+   <property name="floatable">
+    <bool>true</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionSerial_RTU"/>
+   <addaction name="actionConnect"/>
+   <addaction name="separator"/>
+   <addaction name="actionScan"/>
+   <addaction name="actionOpenLogFile"/>
+   <addaction name="separator"/>
+   <addaction name="actionAbout"/>
+   <addaction name="separator"/>
+  </widget>
+  <action name="actionExit">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/exit-16.png</normaloff>:/icons/exit-16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Çıkış</string>
+   </property>
+   <property name="iconVisibleInMenu">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionSave_Session">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/document-export-16.png</normaloff>:/icons/document-export-16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Dışa Aktar</string>
+   </property>
+  </action>
+  <action name="actionLoad_Session">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/document-import-16.png</normaloff>:/icons/document-import-16.png</iconset>
+   </property>
+   <property name="text">
+    <string>İçe Aktar</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/info-sign-16.png</normaloff>:/icons/info-sign-16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Hakkında</string>
+   </property>
+   <property name="iconVisibleInMenu">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionSerial_RTU">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/serial-pot-16.png</normaloff>:/icons/serial-pot-16.png</iconset>
+   </property>
+   <property name="text">
+    <string notr="true">COM Port</string>
+   </property>
+   <property name="iconVisibleInMenu">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionScan">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/cyclic-process-16.png</normaloff>:/icons/cyclic-process-16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Tara</string>
+   </property>
+  </action>
+  <action name="actionOpenLogFile">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/text-x-log-16.png</normaloff>:/icons/text-x-log-16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Kayıt</string>
+   </property>
+  </action>
+  <action name="actionConnect">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/plug-disconnect-16.png</normaloff>
+     <normalon>:/icons/plug-connect-16.png</normalon>:/icons/plug-disconnect-16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Bağlan</string>
+   </property>
+  </action>
+  <action name="actionNew_RegAddress">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/Header16.png</normaloff>:/icons/Header16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Registers</string>
+   </property>
+  </action>
+  <action name="actionNew_Parameter">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/Header16.png</normaloff>:/icons/Header16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Parameters</string>
+   </property>
+  </action>
+  <action name="actionNew_Address_Type">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/Header16.png</normaloff>:/icons/Header16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Address Types</string>
+   </property>
+  </action>
+  <action name="actionNew_DeviceType">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/connect-24.png</normaloff>:/icons/connect-24.png</iconset>
+   </property>
+   <property name="text">
+    <string>Device Types</string>
+   </property>
+  </action>
+  <action name="actionNew_Page">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/text-x-log-16.png</normaloff>:/icons/text-x-log-16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Pages</string>
+   </property>
+  </action>
+  <action name="actionNew_Menu">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/edit-16.png</normaloff>:/icons/edit-16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Menus</string>
+   </property>
+  </action>
+  <action name="actionPair_Menu_Page">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/data-sort-16.png</normaloff>:/icons/data-sort-16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Pair Menu - Page</string>
+   </property>
+  </action>
+  <action name="actionWriteToDevice">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/upload.png</normaloff>:/icons/upload.png</iconset>
+   </property>
+   <property name="text">
+    <string>Cihaza Yaz</string>
+   </property>
+   <property name="toolTip">
+    <string>Cihaza Yaz</string>
+   </property>
+  </action>
+  <action name="actionReadFromDevice">
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/download.png</normaloff>:/icons/download.png</iconset>
+   </property>
+   <property name="text">
+    <string>Cihazdan Oku</string>
+   </property>
+   <property name="toolTip">
+    <string>Cihazdan Oku</string>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="icons/icons.qrc"/>
+ </resources>
+ <connections/>
+</ui>

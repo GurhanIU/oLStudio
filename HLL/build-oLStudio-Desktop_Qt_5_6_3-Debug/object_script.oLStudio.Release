@@ -1,0 +1,12 @@
+INPUT(
+./release\main.o
+./release\mainwindow.o
+./release\settingsrtu.o
+./release\commsettings.o
+./release\masterthread.o
+./release\qrc_icons.o
+./release\moc_mainwindow.o
+./release\moc_settingsrtu.o
+./release\moc_commsettings.o
+./release\moc_masterthread.o
+);
