@@ -127,33 +127,43 @@ void MainWindow::showRequest(QByteArray data)
 void MainWindow::processError(const QString &s)
 {
     setControlsEnabled(true);
-    qDebug() << "processError" << s;
+//    qDebug() << "processError" << s;
 }
 
 void MainWindow::processTimeout(const QString &s)
 {
     setControlsEnabled(true);
-    qDebug() << "processTimeout" << s;
+//    qDebug() << "processTimeout" << s;
 }
 
 void MainWindow::setControlsEnabled(bool enable)
 {
+    ui->actionSerial_RTU->setEnabled(!enable);
     ui->actionWriteToDevice->setEnabled(enable);
     ui->actionReadFromDevice->setEnabled(enable);
     ui->actionLoad_Session->setEnabled(enable);
     ui->actionSave_Session->setEnabled(enable);
     ui->actionScan->setEnabled(enable);
-    ui->actionSerial_RTU->setEnabled(!enable);
+    ui->actionOpenLogFile->setEnabled(enable);
 }
 
 void MainWindow::changedConnect(bool value) //Connect - Disconnect
 {
-    setControlsEnabled(false);
-    m_baseAddr->setText(tr("Status: Connented"));
+    qDebug() << value;
+    setControlsEnabled(value);
+    m_baseAddr->setText(tr("Status: %1").arg(value ? "Connected" : "Disconnected"));
 
-    m_thread->transaction(m_commSettings->serialPortName(),
-                       m_commSettings->timeOut().toInt(),
-                       QString());
+    if (!m_thread->isRunning()) {
+        m_thread->setConfig(m_commSettings->serialPortName(),
+                            QSerialPort::Baud115200,
+                            QSerialPort::NoParity,
+                            QSerialPort::Data8,
+                            QSerialPort::OneStop,
+                            m_commSettings->timeOut().toInt());
+
+    }
+
+    m_thread->transaction(value);
 }
 
 void MainWindow::openSerialPort() //Modbus connect - RTU/TCP

@@ -33,8 +33,6 @@
 
 #include "masterthread.h"
 
-#include <QtSerialPort/QSerialPort>
-
 #include <QTime>
 
 QT_USE_NAMESPACE
@@ -55,17 +53,29 @@ MasterThread::~MasterThread()
 }
 //! [0]
 
+void MasterThread::setConfig(const QString &portName, QSerialPort::BaudRate baudRate, QSerialPort::Parity parity, QSerialPort::DataBits dataBits, QSerialPort::StopBits stopBits, int waitTimeout)
+{
+//    QMutexLocker locker(&m_mutex);
+    m_mutex.lock();
+    m_portName = portName;
+    m_baudRate = baudRate;
+    m_parity = parity;
+    m_dataBits = dataBits;
+    m_stopBits = stopBits;
+    m_waitTimeout = waitTimeout;
+    m_mutex.unlock();
+}
+
 //! [1] //! [2]
-void MasterThread::transaction(const QString &portName, int waitTimeout, const QString &request)
+void MasterThread::transaction(bool start)
 {
     //! [1]
     QMutexLocker locker(&m_mutex);
-    m_portName = portName;
-    m_waitTimeout = waitTimeout;
-    m_request = request;
+    m_quit = !start;
+//    m_request = request;
     //! [3]
-    if (!isRunning())
-        start();
+    if (!isRunning() && start)
+        this->start();
     else
         m_cond.wakeOne();
 }
@@ -160,5 +170,7 @@ void MasterThread::run()
         m_mutex.unlock();
 
     }
+
+    serial.close();
     //! [13]
 }
