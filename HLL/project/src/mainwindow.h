@@ -34,16 +34,15 @@ public slots:
 
 private slots:
     void showSettingsRTU();
-    void openSerialPort();
-    void onStateChanged(int state);
 
-
-    void transaction();
+    void transaction(bool checked);
     void showResponse(const QByteArray &data);
     void showRequest(const QByteArray &data);
     void processError(const QString &s);
     void processTimeout(const QString &s);
 
+    void slPortStatusChanged(bool status);
+    void openCloseDevice();
 
 private:
     Ui::MainWindow *ui;
@@ -60,6 +59,5 @@ private:
 
     void changedConnect(bool value);
     void setControlsEnabled(bool enable);
-
 };
 #endif // MAINWINDOW_H

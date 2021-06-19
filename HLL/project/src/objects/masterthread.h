@@ -51,11 +51,14 @@ public:
     void run();
 
     void transaction(const QByteArray &data);
-    void transaction(bool start);
 
-    void setConfig(const QString &portName, QSerialPort::BaudRate baudRate, QSerialPort::Parity parity, QSerialPort::DataBits dataBits, QSerialPort::StopBits stopBits, int waitTimeout);
+    bool setConfig(const QString &portName, QSerialPort::BaudRate baudRate, QSerialPort::Parity parity, QSerialPort::DataBits dataBits, QSerialPort::StopBits stopBits, int waitTimeout);
 
+public slots:
+    void openPort();
+    void closePort();
 signals:
+    void sgPortStatus(bool);
     void response(const QByteArray &data);
 //    void request(const QString &s, int length);
     void request(const QByteArray &data);

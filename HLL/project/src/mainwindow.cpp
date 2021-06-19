@@ -1,8 +1,10 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QMessageBox>
 #include <QLabel>
 #include <QTime>
+#include <QTimer>
 #include <QDebug>
 
 #include "commsettings.h"
@@ -36,13 +38,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::changedConnect);
     connect(ui->actionScan, &QAction::triggered, this, &MainWindow::transaction);
 
+    connect(m_thread, &MasterThread::sgPortStatus, this, &MainWindow::slPortStatusChanged);
     connect(m_thread, &MasterThread::response, this, &MainWindow::showResponse);
     connect(m_thread, &MasterThread::request, this, &MainWindow::showRequest);
     connect(m_thread, &MasterThread::error, this, &MainWindow::processError);
     connect(m_thread, &MasterThread::timeout, this, &MainWindow::processTimeout);
     connect(m_thread, &MasterThread::finished, this, &MainWindow::threadFinished);
 
-    onStateChanged(MainWindow::UnconnectedState);
     updateStatusBar();
 }
 
@@ -54,7 +56,6 @@ MainWindow::~MainWindow()
 void MainWindow::threadFinished()
 {
     qDebug() << Q_FUNC_INFO;
-    onStateChanged(false);
 }
 
 void MainWindow::showSettingsRTU()
@@ -69,106 +70,98 @@ void MainWindow::showSettingsRTU()
 
 }
 
-void MainWindow::onStateChanged(int state)
-{
-    bool connected = (state != MainWindow::UnconnectedState);
-
-    switch (state) {
-    case MainWindow::UnconnectedState:
-        qDebug() << "QDevice::UnconnectedState";
-        ui->actionConnect->setText(tr("Bağlan"));
-        ui->actionConnect->setChecked(false);
-        m_statusInd->setPixmap(QPixmap(":/icons/bullet-red-16.png"));
-        break;
-    case MainWindow::ConnectingState:
-        qDebug() << "QDevice::ConnectingState";
-        m_statusInd->setPixmap(QPixmap(":/icons/bullet-orange-16.png"));
-        break;
-    case MainWindow::ConnectedState:
-        qDebug() << "QDevice::ConnectedState";
-        ui->actionConnect->setText(tr("Kopar "));
-        m_statusInd->setPixmap(QPixmap(":/icons/bullet-green-16.png"));
-        break;
-    case MainWindow::ClosingState:
-        qDebug() << "QDevice::ClosingState";
-        m_statusInd->setPixmap(QPixmap(":/icons/bullet-orange-16.png"));
-        break;
-    }
-
-    ui->actionWriteToDevice->setEnabled(connected);
-    ui->actionReadFromDevice->setEnabled(connected);
-    ui->actionLoad_Session->setEnabled(connected);
-    ui->actionSave_Session->setEnabled(connected);
-    ui->actionScan->setEnabled(connected);
-    ui->actionSerial_RTU->setEnabled(!connected);
-}
-
 void MainWindow::changedConnect(bool value) //Connect - Disconnect
 {
-    setControlsEnabled(value);
-    m_baseAddr->setText(tr("Status: %1").arg(value ? "Connected" : "Disconnected"));
+    setControlsEnabled(false);
+    m_baseAddr->setText(tr("Port Status: %1").arg("..."));
 
-//    if (!m_thread->isRunning()) {
-        m_thread->setConfig(m_commSettings->serialPortName(),
-                            QSerialPort::Baud115200,
-                            QSerialPort::NoParity,
-                            QSerialPort::Data8,
-                            QSerialPort::OneStop,
-                            1000);
-//    }
+    if (m_thread->setConfig(m_commSettings->serialPortName(), QSerialPort::Baud115200,
+                            QSerialPort::NoParity, QSerialPort::Data8, QSerialPort::OneStop, 100)) {
+        m_thread->openPort();
+        QTimer::singleShot(100, this, SLOT(openCloseDevice()));
+    }
+    else {
+        openCloseDevice();
+        QTimer::singleShot(100, m_thread, SLOT(closePort()));
+    }
 }
 
-void MainWindow::transaction()
+void MainWindow::openCloseDevice()
 {
-//    setControlsEnabled(false);
-    m_baseAddr->setText(tr("Status: Running"));
-
     QByteArray data; // cihaz tarafinda haberlesmeyi acar
     data.append((char) 0xAA);
-    data.append((char) 0x01);
-    data.append((char) 0x06);
-    data.append((char) 0x01);
-    data.append((char) 0x22);
-    data.append((char) 0xC0);
+    data.append((char) 0x03);
+    data.append((char) 0x03);
     data.append((char) 0x00);
     data.append((char) 0x00);
-    data.append((char) 0x02);
-    data.append((char) 0xE5);
+    data.append((char) 0x00);
+    data.append((char) 0x00);
     data.append((char) 0x55);
-
     m_thread->transaction(data);
+}
+
+void MainWindow::transaction(bool checked)
+{
+    qDebug() << "checked" << checked;
+    if (checked) {
+        QByteArray data; // cihaz tarafinda haberlesmeyi acar
+        data.append((char) 0xAA);
+        data.append((char) 0x01);
+        data.append((char) 0x06);
+        data.append((char) 0x01);
+        data.append((char) 0x22);
+        data.append((char) 0xC0);
+        data.append((char) 0x00);
+        data.append((char) 0x00);
+        data.append((char) 0x02);
+        data.append((char) 0xE5);
+        data.append((char) 0x55);
+        m_thread->transaction(data);
+    }
+    else {
+        openCloseDevice();
+    }
 }
 
 void MainWindow::showResponse(const QByteArray &data)
 {
-//    setControlsEnabled(true);
-    qDebug() << "Response" << data.toHex().toUpper() << QTime::currentTime().toString("hh:mm:ss:zzz");
-
+//    qDebug() << "Response" << data.toHex().toUpper() << QTime::currentTime().toString("hh:mm:ss:zzz");
     m_baseAddr->setText(tr("Traffic: %1 #%2#").arg(++count).arg(QString(data.toHex().toUpper())));
 }
 
 void MainWindow::showRequest(const QByteArray &data)
 {
-
-//    setControlsEnabled(true);
-//    for (int i=0; i<data.length(); i++) {
-//        qDebug() << "showRequest i:" << i  << QString("%1").arg(data.at(i), 16);
-//    }
-    qDebug() << "Response" << data.toHex().toUpper() << QTime::currentTime().toString("hh:mm:ss:zzz");
-
+//    qDebug() << "Request " << data.toHex().toUpper() << QTime::currentTime().toString("hh:mm:ss:zzz");
     m_baseAddr->setText(tr("Traffic: %1 #%2#").arg(++count).arg(QString(data.toHex().toUpper())));
 }
 
 void MainWindow::processError(const QString &s)
 {
-    setControlsEnabled(true);
-//    qDebug() << "processError" << s;
+    QMessageBox::critical(this, "Error", s);
 }
 
 void MainWindow::processTimeout(const QString &s)
 {
-    setControlsEnabled(true);
-    qDebug() << "processTimeout" << s;
+    qDebug() << s;
+}
+
+void MainWindow::slPortStatusChanged(bool status)
+{
+    if (status) {
+        ui->actionConnect->setText(tr("Kopar "));
+        ui->actionConnect->setChecked(true);
+        m_statusInd->setPixmap(QPixmap(":/icons/bullet-green-16.png"));
+    }
+    else {
+        ui->actionConnect->setText(tr("Bağlan"));
+        ui->actionConnect->setChecked(false);
+        m_statusInd->setPixmap(QPixmap(":/icons/bullet-red-16.png"));
+    }
+
+    ui->actionScan->setChecked(false);
+
+    m_baseAddr->setText(tr("Port Status: %1").arg(status ? "Connected" : "Disconnected"));
+    setControlsEnabled(status);
 }
 
 void MainWindow::setControlsEnabled(bool enable)
@@ -180,11 +173,6 @@ void MainWindow::setControlsEnabled(bool enable)
     ui->actionSave_Session->setEnabled(enable);
     ui->actionScan->setEnabled(enable);
     ui->actionOpenLogFile->setEnabled(enable);
-}
-
-void MainWindow::openSerialPort() //Modbus connect - RTU/TCP
-{
-
 }
 
 void MainWindow::updateStatusBar()
