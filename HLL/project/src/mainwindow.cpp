@@ -2,11 +2,14 @@
 #include "ui_mainwindow.h"
 
 #include <QLabel>
+#include <QTime>
 #include <QDebug>
 
 #include "commsettings.h"
 #include "settingsrtu.h"
 #include "masterthread.h"
+
+static int count = 0;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -21,6 +24,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_statusInd->setFixedSize( 16, 16 );
     m_statusText = new QLabel;
     m_baseAddr = new QLabel;
+    m_baseAddr->setMaximumWidth(300);
 
     ui->statusBar->addWidget(m_statusInd);
     ui->statusBar->addWidget(m_statusText, 10);
@@ -36,6 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_thread, &MasterThread::request, this, &MainWindow::showRequest);
     connect(m_thread, &MasterThread::error, this, &MainWindow::processError);
     connect(m_thread, &MasterThread::timeout, this, &MainWindow::processTimeout);
+    connect(m_thread, &MasterThread::finished, this, &MainWindow::threadFinished);
 
     onStateChanged(MainWindow::UnconnectedState);
     updateStatusBar();
@@ -44,6 +49,12 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::threadFinished()
+{
+    qDebug() << Q_FUNC_INFO;
+    onStateChanged(false);
 }
 
 void MainWindow::showSettingsRTU()
@@ -92,34 +103,58 @@ void MainWindow::onStateChanged(int state)
     ui->actionSerial_RTU->setEnabled(!connected);
 }
 
+void MainWindow::changedConnect(bool value) //Connect - Disconnect
+{
+    setControlsEnabled(value);
+    m_baseAddr->setText(tr("Status: %1").arg(value ? "Connected" : "Disconnected"));
+
+//    if (!m_thread->isRunning()) {
+        m_thread->setConfig(m_commSettings->serialPortName(),
+                            QSerialPort::Baud115200,
+                            QSerialPort::NoParity,
+                            QSerialPort::Data8,
+                            QSerialPort::OneStop,
+                            1000);
+//    }
+}
+
 void MainWindow::transaction()
 {
-    setControlsEnabled(false);
+//    setControlsEnabled(false);
     m_baseAddr->setText(tr("Status: Running"));
 
-//    m_thread->transaction(serialPortComboBox->currentText(),
-//                       waitResponseSpinBox->value(),
-//                       requestLineEdit->text());
+    QByteArray data; // cihaz tarafinda haberlesmeyi acar
+    data.append((char) 0xAA);
+    data.append((char) 0x01);
+    data.append((char) 0x06);
+    data.append((char) 0x01);
+    data.append((char) 0x22);
+    data.append((char) 0xC0);
+    data.append((char) 0x00);
+    data.append((char) 0x00);
+    data.append((char) 0x02);
+    data.append((char) 0xE5);
+    data.append((char) 0x55);
+
+    m_thread->transaction(data);
 }
 
-void MainWindow::showResponse(const QString &s)
+void MainWindow::showResponse(const QByteArray &data)
 {
 //    setControlsEnabled(true);
-    qDebug() << "showResponse" << s;
-//    m_baseAddr->setText(tr("Traffic, transaction #%1:"
-//                             "\n\r-request: %2"
-//                             "\n\r-response: %3")
-    //                          .arg(++transactionCount).arg(requestLineEdit->text()).arg(s));
+    qDebug() << "Response" << data.toHex().toUpper() << QTime::currentTime().toString("hh:mm:ss:zzz");
+
+    m_baseAddr->setText(tr("Traffic: %1 #%2#").arg(++count).arg(QString(data.toHex().toUpper())));
 }
 
-void MainWindow::showRequest(QByteArray data)
+void MainWindow::showRequest(const QByteArray &data)
 {
-    static int count = 0;
+
 //    setControlsEnabled(true);
 //    for (int i=0; i<data.length(); i++) {
 //        qDebug() << "showRequest i:" << i  << QString("%1").arg(data.at(i), 16);
 //    }
-    qDebug() << "showRequest" << data.toHex().toUpper();
+    qDebug() << "Response" << data.toHex().toUpper() << QTime::currentTime().toString("hh:mm:ss:zzz");
 
     m_baseAddr->setText(tr("Traffic: %1 #%2#").arg(++count).arg(QString(data.toHex().toUpper())));
 }
@@ -133,7 +168,7 @@ void MainWindow::processError(const QString &s)
 void MainWindow::processTimeout(const QString &s)
 {
     setControlsEnabled(true);
-//    qDebug() << "processTimeout" << s;
+    qDebug() << "processTimeout" << s;
 }
 
 void MainWindow::setControlsEnabled(bool enable)
@@ -145,25 +180,6 @@ void MainWindow::setControlsEnabled(bool enable)
     ui->actionSave_Session->setEnabled(enable);
     ui->actionScan->setEnabled(enable);
     ui->actionOpenLogFile->setEnabled(enable);
-}
-
-void MainWindow::changedConnect(bool value) //Connect - Disconnect
-{
-    qDebug() << value;
-    setControlsEnabled(value);
-    m_baseAddr->setText(tr("Status: %1").arg(value ? "Connected" : "Disconnected"));
-
-    if (!m_thread->isRunning()) {
-        m_thread->setConfig(m_commSettings->serialPortName(),
-                            QSerialPort::Baud115200,
-                            QSerialPort::NoParity,
-                            QSerialPort::Data8,
-                            QSerialPort::OneStop,
-                            m_commSettings->timeOut().toInt());
-
-    }
-
-    m_thread->transaction(value);
 }
 
 void MainWindow::openSerialPort() //Modbus connect - RTU/TCP

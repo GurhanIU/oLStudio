@@ -40,6 +40,7 @@ QT_USE_NAMESPACE
 MasterThread::MasterThread(QObject *parent)
     : QThread(parent), m_waitTimeout(0), m_quit(false)
 {
+    m_transactionData.clear();
 }
 
 //! [0]
@@ -55,25 +56,53 @@ MasterThread::~MasterThread()
 
 void MasterThread::setConfig(const QString &portName, QSerialPort::BaudRate baudRate, QSerialPort::Parity parity, QSerialPort::DataBits dataBits, QSerialPort::StopBits stopBits, int waitTimeout)
 {
-//    QMutexLocker locker(&m_mutex);
-    m_mutex.lock();
+    QMutexLocker locker(&m_mutex);
+
+    if (isRunning()){
+        m_quit = true;
+        return;
+    }
+
+    m_quit = false;
+
+//    m_mutex.lock();
     m_portName = portName;
     m_baudRate = baudRate;
     m_parity = parity;
     m_dataBits = dataBits;
     m_stopBits = stopBits;
     m_waitTimeout = waitTimeout;
-    m_mutex.unlock();
+//    m_mutex.unlock();
+
+    this->start();
+
+    if (isRunning()) {
+//        QByteArray data; // cihaz tarafinda haberlesmeyi acar
+        m_transactionData.append((char) 0xAA);
+        m_transactionData.append((char) 0x03);
+        m_transactionData.append((char) 0x03);
+        m_transactionData.append((char) 0x00);
+        m_transactionData.append((char) 0x00);
+        m_transactionData.append((char) 0x00);
+        m_transactionData.append((char) 0x00);
+        m_transactionData.append((char) 0x55);
+//        transaction(data);
+    }
 }
 
-//! [1] //! [2]
+void MasterThread::transaction(const QByteArray &data)
+{
+    QMutexLocker locker(&m_mutex);
+    m_transactionData = data;
+    if (isRunning())
+        m_cond.wakeOne();
+}
+
 void MasterThread::transaction(bool start)
 {
-    //! [1]
     QMutexLocker locker(&m_mutex);
     m_quit = !start;
 //    m_request = request;
-    //! [3]
     if (!isRunning() && start)
         this->start();
     else
@@ -95,14 +124,15 @@ void MasterThread::run()
     }
 
     int currentWaitTimeout = m_waitTimeout;
-    QString currentRequest;// = m_request;
-    QString currentRespone;
+    QByteArray requestData(m_transactionData);
+    m_transactionData.clear();
+
+    // Burada thread in kilidini aciyor.
     m_mutex.unlock();
-    //! [5] //! [6]
+
     QSerialPort serial;
 
     while (!m_quit) {
-        //![6] //! [7]
         if (currentPortNameChanged) {
             serial.close();
             serial.setPortName(currentPortName);
@@ -119,18 +149,16 @@ void MasterThread::run()
             serial.setStopBits(QSerialPort::OneStop);
         }
         // write request
-        if (!currentRequest.isEmpty()) {
-            QByteArray requestData = currentRequest.toLocal8Bit();
+        if (!requestData.isEmpty()) {
             serial.write(requestData);
             if (serial.waitForBytesWritten(m_waitTimeout)) {
                 // read response
                 if (serial.waitForReadyRead(currentWaitTimeout)) {
                     QByteArray responseData = serial.readAll();
-                    while (serial.waitForReadyRead(100))
+                    while (serial.waitForReadyRead(20))
                         responseData += serial.readAll();
 
-                    QString response(responseData);
-                    emit this->response(response);
+                    emit this->response(responseData);
                 } else {
                     emit timeout(tr("Wait read response timeout %1")
                                  .arg(QTime::currentTime().toString()));
@@ -139,6 +167,8 @@ void MasterThread::run()
                 emit timeout(tr("Wait write request timeout %1")
                              .arg(QTime::currentTime().toString()));
             }
+
+            requestData.clear();
         }
         else {
             if (serial.waitForReadyRead(currentWaitTimeout)) {
@@ -147,7 +177,7 @@ void MasterThread::run()
                 while (serial.waitForReadyRead(20))
                     requestData += serial.readAll();
 
-                    QString request(qPrintable(requestData));
+//                    QString request(qPrintable(requestData));
 //                    emit this->request(request, requestData.length());
                     emit this->request(requestData);
 
@@ -157,8 +187,10 @@ void MasterThread::run()
             }
         }
 
+        // Thread i kitliyor ve beklemeye basliyor.
         m_mutex.lock();
 //        m_cond.wait(&m_mutex);
+
         if (currentPortName != m_portName) {
             currentPortName = m_portName;
             currentPortNameChanged = true;
@@ -166,9 +198,9 @@ void MasterThread::run()
             currentPortNameChanged = false;
         }
         currentWaitTimeout = m_waitTimeout;
-        currentRequest = m_request;
+        requestData = m_transactionData;
+        m_transactionData.clear();
         m_mutex.unlock();
-
     }
 
     serial.close();

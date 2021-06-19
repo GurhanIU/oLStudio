@@ -48,14 +48,17 @@ public:
     MasterThread(QObject *parent = 0);
     ~MasterThread();
 
-    void transaction(bool start);
     void run();
 
+    void transaction(const QByteArray &data);
+    void transaction(bool start);
+
     void setConfig(const QString &portName, QSerialPort::BaudRate baudRate, QSerialPort::Parity parity, QSerialPort::DataBits dataBits, QSerialPort::StopBits stopBits, int waitTimeout);
+
 signals:
-    void response(const QString &s);
+    void response(const QByteArray &data);
 //    void request(const QString &s, int length);
-    void request(QByteArray data);
+    void request(const QByteArray &data);
     void error(const QString &s);
     void timeout(const QString &s);
 
@@ -66,7 +69,7 @@ private:
     QSerialPort::DataBits m_dataBits;
     QSerialPort::StopBits m_stopBits;
 
-    QString m_request;
+    QByteArray m_transactionData;
     int m_waitTimeout;
     QMutex m_mutex;
     QWaitCondition m_cond;

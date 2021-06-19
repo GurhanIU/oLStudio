@@ -29,6 +29,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+public slots:
+    void threadFinished();
+
 private slots:
     void showSettingsRTU();
     void openSerialPort();
@@ -36,8 +39,8 @@ private slots:
 
 
     void transaction();
-    void showResponse(const QString &s);
-    void showRequest(QByteArray data);
+    void showResponse(const QByteArray &data);
+    void showRequest(const QByteArray &data);
     void processError(const QString &s);
     void processTimeout(const QString &s);
 
