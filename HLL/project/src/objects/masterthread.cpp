@@ -41,7 +41,8 @@ QT_USE_NAMESPACE
 MasterThread::MasterThread(QObject *parent)
     : QThread(parent), m_waitTimeout(0), m_quit(false)
 {
-    m_transactionData.clear();
+    qRegisterMetaType<MasterThread::Error>();
+    qRegisterMetaType<MasterThread::State>();
 }
 
 MasterThread::~MasterThread()
@@ -117,24 +118,33 @@ void MasterThread::run()
     // Burada thread in kilidini aciyor.
     m_mutex.unlock();
 
+    emit stateChanged(MasterThread::ConnectingState);
     QSerialPort serial;    
     serial.setPortName(currentPortName);
 
     if (!serial.open(QIODevice::ReadWrite)) {
-        emit sgPortStatus(false);
-        emit error(tr("Can't open %1, error code %2")
-                   .arg(m_portName).arg(serial.error()));
+        emit errorOccurred(MasterThread::ConnectionError);
+        emit stateChanged(MasterThread::UnconnectedState);
         return;
     }
 
-    serial.setParity(QSerialPort::NoParity);
-    serial.setBaudRate(QSerialPort::Baud115200);
-    serial.setDataBits(QSerialPort::Data8);
-    serial.setStopBits(QSerialPort::OneStop);
+    bool configStatus = false;
+    configStatus = serial.setParity(QSerialPort::NoParity);
+    configStatus &= serial.setBaudRate(QSerialPort::Baud115200);
+    configStatus &= serial.setDataBits(QSerialPort::Data8);
+    configStatus &= serial.setStopBits(QSerialPort::OneStop);
+
+    if (!configStatus) {
+        emit stateChanged(MasterThread::ClosingState);
+        emit errorOccurred(MasterThread::ConfigurationError);
+        serial.close();
+        emit stateChanged(MasterThread::UnconnectedState);
+        return;
+    }
 
     // Thread i kitliyor ve beklemeye basliyor.
     m_mutex.lock();
-    emit sgPortStatus(true);
+    emit stateChanged(MasterThread::ConnectedState);
     m_cond.wait(&m_mutex); // Port islemleri yapildi ve transaction bekleniyor!
     m_mutex.unlock();
 
@@ -152,11 +162,11 @@ void MasterThread::run()
                     emit this->response(responseData);
                 }
                 else {
-                    emit timeout(tr("Wait read response timeout %1").arg(QTime::currentTime().toString()));
+                    emit errorOccurred(MasterThread::TimeoutError);
                 }
             }
             else {
-                emit timeout(tr("Wait write request timeout %1").arg(QTime::currentTime().toString()));
+                emit errorOccurred(MasterThread::TimeoutError);
             }
 
             requestData.clear();
@@ -170,7 +180,7 @@ void MasterThread::run()
                 emit this->response(responseData);
             }
             else {
-                emit timeout(tr("Wait read request timeout %1").arg(QTime::currentTime().toString()));
+                emit errorOccurred(MasterThread::TimeoutError);
             }
         }
 
@@ -183,7 +193,7 @@ void MasterThread::run()
         m_mutex.unlock();
     }
 
+    emit stateChanged(MasterThread::ClosingState);
     serial.close();
-    emit sgPortStatus(false);
-    //! [13]
+    emit stateChanged(MasterThread::UnconnectedState);
 }

@@ -9,7 +9,6 @@
 
 #include "commsettings.h"
 #include "settingsrtu.h"
-#include "masterthread.h"
 
 static int count = 0;
 
@@ -38,13 +37,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::changedConnect);
     connect(ui->actionScan, &QAction::triggered, this, &MainWindow::transaction);
 
-    connect(m_thread, &MasterThread::sgPortStatus, this, &MainWindow::slPortStatusChanged);
+    connect(m_thread, &MasterThread::errorOccurred, this, &MainWindow::threadErrorOccured);
+    connect(m_thread, &MasterThread::stateChanged, this, &MainWindow::threadStateChanged);
     connect(m_thread, &MasterThread::response, this, &MainWindow::showResponse);
     connect(m_thread, &MasterThread::request, this, &MainWindow::showRequest);
-    connect(m_thread, &MasterThread::error, this, &MainWindow::processError);
-    connect(m_thread, &MasterThread::timeout, this, &MainWindow::processTimeout);
     connect(m_thread, &MasterThread::finished, this, &MainWindow::threadFinished);
 
+    threadStateChanged(MasterThread::UnconnectedState);
     updateStatusBar();
 }
 
@@ -102,7 +101,6 @@ void MainWindow::openCloseDevice()
 
 void MainWindow::transaction(bool checked)
 {
-    qDebug() << "checked" << checked;
     if (checked) {
         QByteArray data; // cihaz tarafinda haberlesmeyi acar
         data.append((char) 0xAA);
@@ -123,6 +121,77 @@ void MainWindow::transaction(bool checked)
     }
 }
 
+void MainWindow::threadErrorOccured(MasterThread::Error error)
+{
+    switch (error) {
+    case MasterThread::NoError:
+        qDebug() << "MasterThread::NoError";
+        break;
+    case MasterThread::ReadError:
+        qDebug() << "MasterThread::ReadError";
+        break;
+    case MasterThread::WriteError:
+        qDebug() << "MasterThread::WriteError";
+        break;
+    case MasterThread::ConnectionError:
+        qDebug() << "MasterThread::ConnectionError";
+        QMessageBox::critical(this, tr("Serial Port"), tr("The Port Could Not Open!"));
+        break;
+    case MasterThread::ConfigurationError:
+        qDebug() << "MasterThread::ConfigurationError";
+        QMessageBox::critical(this, tr("Serial Port"), tr("Port Configuration Is Invalid!"));
+
+        break;
+    case MasterThread::TimeoutError:
+        qDebug() << "MasterThread::TimeoutError";
+        break;
+    case MasterThread::ProtocolError:
+        qDebug() << "MasterThread::ProtocolError";
+        break;
+    case MasterThread::ReplyAbortedError:
+        qDebug() << "MasterThread::ReplyAbortedError";
+        break;
+    case MasterThread::UnknownError:
+        qDebug() << "MasterThread::UnknownError";
+        break;
+    default:
+        break;
+    }
+}
+
+void MainWindow::threadStateChanged(MasterThread::State state)
+{
+    bool connected = (state != MasterThread::UnconnectedState);
+
+    switch (state) {
+    case MasterThread::UnconnectedState:
+        qDebug() << "MasterThread::UnconnectedState";
+        ui->actionConnect->setText(tr("Bağlan"));
+        ui->actionConnect->setChecked(false);
+        m_statusInd->setPixmap(QPixmap(":/icons/bullet-red-16.png"));
+        break;
+    case MasterThread::ConnectingState:
+        qDebug() << "MasterThread::ConnectingState";
+        m_statusInd->setPixmap(QPixmap(":/icons/bullet-orange-16.png"));
+        break;
+    case MasterThread::ConnectedState:
+        qDebug() << "MasterThread::ConnectedState";
+        ui->actionConnect->setText(tr("Kopar "));
+        ui->actionConnect->setChecked(true);
+        m_statusInd->setPixmap(QPixmap(":/icons/bullet-green-16.png"));
+        break;
+    case MasterThread::ClosingState:
+        qDebug() << "MasterThread::ClosingState";
+        m_statusInd->setPixmap(QPixmap(":/icons/bullet-orange-16.png"));
+        break;
+    }
+
+    ui->actionScan->setChecked(false);
+
+    m_baseAddr->setText(tr("Port Status: %1").arg(connected ? "Connected" : "Disconnected"));
+    setControlsEnabled(connected);
+}
+
 void MainWindow::showResponse(const QByteArray &data)
 {
 //    qDebug() << "Response" << data.toHex().toUpper() << QTime::currentTime().toString("hh:mm:ss:zzz");
@@ -133,35 +202,6 @@ void MainWindow::showRequest(const QByteArray &data)
 {
 //    qDebug() << "Request " << data.toHex().toUpper() << QTime::currentTime().toString("hh:mm:ss:zzz");
     m_baseAddr->setText(tr("Traffic: %1 #%2#").arg(++count).arg(QString(data.toHex().toUpper())));
-}
-
-void MainWindow::processError(const QString &s)
-{
-    QMessageBox::critical(this, "Error", s);
-}
-
-void MainWindow::processTimeout(const QString &s)
-{
-    qDebug() << s;
-}
-
-void MainWindow::slPortStatusChanged(bool status)
-{
-    if (status) {
-        ui->actionConnect->setText(tr("Kopar "));
-        ui->actionConnect->setChecked(true);
-        m_statusInd->setPixmap(QPixmap(":/icons/bullet-green-16.png"));
-    }
-    else {
-        ui->actionConnect->setText(tr("Bağlan"));
-        ui->actionConnect->setChecked(false);
-        m_statusInd->setPixmap(QPixmap(":/icons/bullet-red-16.png"));
-    }
-
-    ui->actionScan->setChecked(false);
-
-    m_baseAddr->setText(tr("Port Status: %1").arg(status ? "Connected" : "Disconnected"));
-    setControlsEnabled(status);
 }
 
 void MainWindow::setControlsEnabled(bool enable)

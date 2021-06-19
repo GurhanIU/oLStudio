@@ -45,6 +45,27 @@ class MasterThread : public QThread
     Q_OBJECT
 
 public:
+    enum Error {
+        NoError,
+        ReadError,
+        WriteError,
+        ConnectionError,
+        ConfigurationError,
+        TimeoutError,
+        ProtocolError,
+        ReplyAbortedError,
+        UnknownError
+    };
+    Q_ENUM(Error)
+
+    enum State {
+        UnconnectedState,
+        ConnectingState,
+        ConnectedState,
+        ClosingState
+    };
+    Q_ENUM(State)
+
     MasterThread(QObject *parent = 0);
     ~MasterThread();
 
@@ -58,12 +79,11 @@ public slots:
     void openPort();
     void closePort();
 signals:
-    void sgPortStatus(bool);
+    void errorOccurred(MasterThread::Error error);
+    void stateChanged(MasterThread::State state);
+
     void response(const QByteArray &data);
-//    void request(const QString &s, int length);
     void request(const QByteArray &data);
-    void error(const QString &s);
-    void timeout(const QString &s);
 
 private:
     QString m_portName;
@@ -78,6 +98,8 @@ private:
     QWaitCondition m_cond;
     bool m_quit;
 };
-//! [0]
+
+Q_DECLARE_METATYPE(MasterThread::Error)
+Q_DECLARE_METATYPE(MasterThread::State)
 
 #endif // MASTERTHREAD_H

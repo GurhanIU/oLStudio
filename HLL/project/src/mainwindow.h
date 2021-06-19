@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <masterthread.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -36,12 +37,11 @@ private slots:
     void showSettingsRTU();
 
     void transaction(bool checked);
+    void threadErrorOccured(MasterThread::Error);
+    void threadStateChanged(MasterThread::State);
     void showResponse(const QByteArray &data);
     void showRequest(const QByteArray &data);
-    void processError(const QString &s);
-    void processTimeout(const QString &s);
 
-    void slPortStatusChanged(bool status);
     void openCloseDevice();
 
 private:
