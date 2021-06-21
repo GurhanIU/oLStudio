@@ -142,6 +142,9 @@ void MasterThread::run()
         return;
     }
 
+    serial.flush();
+    serial.clear(QSerialPort::AllDirections);
+
     // Thread i kitliyor ve beklemeye basliyor.
     m_mutex.lock();
     emit stateChanged(MasterThread::ConnectedState);

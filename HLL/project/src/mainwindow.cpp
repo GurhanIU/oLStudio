@@ -9,8 +9,10 @@
 
 #include "commsettings.h"
 #include "settingsrtu.h"
+#include "responsepacket.h"
 
-static int count = 0;
+static int reqCount = 0;
+static int resCount = 0;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -24,12 +26,21 @@ MainWindow::MainWindow(QWidget *parent)
     m_statusInd = new QLabel;
     m_statusInd->setFixedSize( 16, 16 );
     m_statusText = new QLabel;
-    m_baseAddr = new QLabel;
-    m_baseAddr->setMaximumWidth(300);
+
+    m_lblRequestTraffic = new QLabel;
+    m_lblRequestTraffic->setMaximumWidth(400);
+
+    m_lblResponseTraffic = new QLabel;
+    m_lblResponseTraffic->setMaximumWidth(600);
+
+    m_lblResponseStatus = new QLabel;
+    m_lblResponseStatus->setMinimumWidth(100);
 
     ui->statusBar->addWidget(m_statusInd);
-    ui->statusBar->addWidget(m_statusText, 10);
-    ui->statusBar->addWidget(m_baseAddr, 10);
+    ui->statusBar->addWidget(m_statusText, 2);
+    ui->statusBar->addWidget(m_lblRequestTraffic, 100);
+    ui->statusBar->addWidget(m_lblResponseTraffic, 100);
+    ui->statusBar->addWidget(m_lblResponseStatus);
 
     m_dlgModbusRTU = new SettingsRTU(this,m_commSettings);
     connect(ui->actionSerial_RTU, SIGNAL(triggered()), this, SLOT(showSettingsRTU()));
@@ -72,7 +83,8 @@ void MainWindow::showSettingsRTU()
 void MainWindow::changedConnect(bool value) //Connect - Disconnect
 {
     setControlsEnabled(false);
-    m_baseAddr->setText(tr("Port Status: %1").arg("..."));
+    m_lblRequestTraffic->clear();
+//    m_lblResponseTraffic->setText(tr("Port Status: %1").arg("..."));
 
     if (m_thread->setConfig(m_commSettings->serialPortName(), QSerialPort::Baud115200,
                             QSerialPort::NoParity, QSerialPort::Data8, QSerialPort::OneStop, 100)) {
@@ -102,6 +114,7 @@ void MainWindow::openCloseDevice()
 void MainWindow::transaction(bool checked)
 {
     if (checked) {
+        qDebug() << "AA" << checked;
         QByteArray data; // cihaz tarafinda haberlesmeyi acar
         data.append((char) 0xAA);
         data.append((char) 0x01);
@@ -117,6 +130,7 @@ void MainWindow::transaction(bool checked)
         m_thread->transaction(data);
     }
     else {
+        qDebug() << "AB" << checked;
         openCloseDevice();
     }
 }
@@ -125,34 +139,33 @@ void MainWindow::threadErrorOccured(MasterThread::Error error)
 {
     switch (error) {
     case MasterThread::NoError:
-        qDebug() << "MasterThread::NoError";
+//        qDebug() << "MasterThread::NoError";
         break;
     case MasterThread::ReadError:
-        qDebug() << "MasterThread::ReadError";
+//        qDebug() << "MasterThread::ReadError";
         break;
     case MasterThread::WriteError:
-        qDebug() << "MasterThread::WriteError";
+//        qDebug() << "MasterThread::WriteError";
         break;
     case MasterThread::ConnectionError:
-        qDebug() << "MasterThread::ConnectionError";
+//        qDebug() << "MasterThread::ConnectionError";
         QMessageBox::critical(this, tr("Serial Port"), tr("The Port Could Not Open!"));
         break;
     case MasterThread::ConfigurationError:
-        qDebug() << "MasterThread::ConfigurationError";
+//        qDebug() << "MasterThread::ConfigurationError";
         QMessageBox::critical(this, tr("Serial Port"), tr("Port Configuration Is Invalid!"));
-
         break;
     case MasterThread::TimeoutError:
-        qDebug() << "MasterThread::TimeoutError";
+//        qDebug() << "MasterThread::TimeoutError";
         break;
     case MasterThread::ProtocolError:
-        qDebug() << "MasterThread::ProtocolError";
+//        qDebug() << "MasterThread::ProtocolError";
         break;
     case MasterThread::ReplyAbortedError:
-        qDebug() << "MasterThread::ReplyAbortedError";
+//        qDebug() << "MasterThread::ReplyAbortedError";
         break;
     case MasterThread::UnknownError:
-        qDebug() << "MasterThread::UnknownError";
+//        qDebug() << "MasterThread::UnknownError";
         break;
     default:
         break;
@@ -168,6 +181,7 @@ void MainWindow::threadStateChanged(MasterThread::State state)
         qDebug() << "MasterThread::UnconnectedState";
         ui->actionConnect->setText(tr("Bağlan"));
         ui->actionConnect->setChecked(false);
+        ui->actionScan->setChecked(false);
         m_statusInd->setPixmap(QPixmap(":/icons/bullet-red-16.png"));
         break;
     case MasterThread::ConnectingState:
@@ -186,22 +200,30 @@ void MainWindow::threadStateChanged(MasterThread::State state)
         break;
     }
 
-    ui->actionScan->setChecked(false);
-
-    m_baseAddr->setText(tr("Port Status: %1").arg(connected ? "Connected" : "Disconnected"));
+//    ui->actionScan->setChecked(false);
     setControlsEnabled(connected);
-}
-
-void MainWindow::showResponse(const QByteArray &data)
-{
-//    qDebug() << "Response" << data.toHex().toUpper() << QTime::currentTime().toString("hh:mm:ss:zzz");
-    m_baseAddr->setText(tr("Traffic: %1 #%2#").arg(++count).arg(QString(data.toHex().toUpper())));
 }
 
 void MainWindow::showRequest(const QByteArray &data)
 {
-//    qDebug() << "Request " << data.toHex().toUpper() << QTime::currentTime().toString("hh:mm:ss:zzz");
-    m_baseAddr->setText(tr("Traffic: %1 #%2#").arg(++count).arg(QString(data.toHex().toUpper())));
+    m_lblRequestTraffic->setText(tr("Request: %1 #%2#").arg(++reqCount).arg(QString(data.toHex(':').toUpper())));
+}
+
+void MainWindow::showResponse(const QByteArray &data)
+{
+    ResponsePacket *packet = new ResponsePacket(data, this);
+//    connect(packet, &ResponsePacket::responseStatus, [=](const QString& status){
+//       m_lblResponseStatus->setText(status);
+//    });
+    connect(packet, &ResponsePacket::responseStatus, this, &MainWindow::showResponseStatus);
+//    connect(packet, SIGNAL(responseStatus(QString)), this, SLOT(showResponseStatus(QString)));
+    packet->deleteLater();
+    m_lblResponseTraffic->setText(tr("Response: %1 #%2#").arg(++resCount).arg(QString(data.toHex(':').toUpper())));
+}
+
+void MainWindow::showResponseStatus(const QString &status)
+{
+    m_lblResponseStatus->setText(tr("Status: %1").arg(status));
 }
 
 void MainWindow::setControlsEnabled(bool enable)

@@ -33,14 +33,16 @@ public:
 public slots:
     void threadFinished();
 
+
 private slots:
     void showSettingsRTU();
 
     void transaction(bool checked);
     void threadErrorOccured(MasterThread::Error);
     void threadStateChanged(MasterThread::State);
-    void showResponse(const QByteArray &data);
     void showRequest(const QByteArray &data);
+    void showResponse(const QByteArray &data);
+    void showResponseStatus(const QString &status);
 
     void openCloseDevice();
 
@@ -48,7 +50,9 @@ private:
     Ui::MainWindow *ui;
     QLabel *m_statusText;
     QLabel *m_statusInd;
-    QLabel *m_baseAddr;
+    QLabel *m_lblRequestTraffic;
+    QLabel *m_lblResponseTraffic;
+    QLabel *m_lblResponseStatus;
 
     CommSettings *m_commSettings;
     SettingsRTU *m_dlgModbusRTU;

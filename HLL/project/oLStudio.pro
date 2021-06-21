@@ -30,13 +30,15 @@ SOURCES += \
     src/mainwindow.cpp \
     src/forms/settingsrtu.cpp \
     src/objects/commsettings.cpp \
-    src/objects/masterthread.cpp
+    src/objects/masterthread.cpp \
+    src/objects/responsepacket.cpp
 
 HEADERS += \
     src/mainwindow.h \
     src/forms/settingsrtu.h \
     src/objects/commsettings.h \
-    src/objects/masterthread.h
+    src/objects/masterthread.h \
+    src/objects/responsepacket.h
 
 FORMS += \
     src/mainwindow.ui \
