@@ -51,6 +51,7 @@ public:
 
 signals:
     void responseStatus(const QString &status);
+    void aaaa();
 
 private:
     QByteArray m_packet;

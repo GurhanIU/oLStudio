@@ -44,13 +44,16 @@ void ResponsePacket::initPacket()
         if (m_packet.at(idxOfFirstEOP +1) == SOP) {
             // bu durumda paket icerisinde paket olma ihtimalinin 2. adimi gerceklesmistir.
             QByteArray newPacket = m_packet.mid(idxOfFirstEOP +1);
+            // Mevcut ResponsePacket nesnesine bagli signal-slot yapilari aktarilamiyor.
             ResponsePacket *newResponse = new ResponsePacket(newPacket, parent());
             newResponse->deleteLater();
 
             m_packet = m_packet.left(idxOfFirstEOP +1);
 
-            qDebug() << "XXX" << QString(newPacket.toHex(':').toUpper()) << QString(m_packet.toHex(':').toUpper());
+//            qDebug() << "XXX" << QString(newPacket.toHex(':').toUpper()) << QString(m_packet.toHex(':').toUpper());
         }
+        else
+            return;
     }
 
     const int ADR_EOP = m_packet.length() -1;
@@ -129,35 +132,27 @@ void ResponsePacket::checkPacketStatus(const uchar &packetStatus)
 {
     switch (packetStatus) {
     case PCK_NOT_RDY:
-        qDebug() << "PCK_NOT_RDY";
         emit responseStatus(QString("PCK_NOT_RDY"));
         break;
     case PCK_READY:
-        qDebug() << "PCK_READY";
         emit responseStatus(QString("PCK_READY"));
         break;
     case RESP_OK:
-        qDebug() << "RESP_OK";
         emit responseStatus(QString("RESP_OK"));
         break;
     case PCK_INV_ID:
-        qDebug() << "PCK_INV_ID";
         emit responseStatus(QString("PCK_INV_ID"));
         break;
     case PCK_CHK_ERR:
-        qDebug() << "PCK_CHK_ERR";
         emit responseStatus(QString("PCK_CHK_ERR"));
         break;
     case PCK_OVERFLOW:
-        qDebug() << "PCK_OVERFLOW";
         emit responseStatus(QString("PCK_OVERFLOW"));
         break;
     case PCK_INV_EOP:
-        qDebug() << "PCK_INV_EOP";
         emit responseStatus(QString("PCK_INV_EOP"));
         break;
     default:
-        qDebug() << "UNKNOWN_STATUS";
         emit responseStatus(QString("UNKNOWN_STATUS"));
         break;
     }

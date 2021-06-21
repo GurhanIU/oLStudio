@@ -211,19 +211,13 @@ void MainWindow::showRequest(const QByteArray &data)
 
 void MainWindow::showResponse(const QByteArray &data)
 {
-    ResponsePacket *packet = new ResponsePacket(data, this);
-//    connect(packet, &ResponsePacket::responseStatus, [=](const QString& status){
-//       m_lblResponseStatus->setText(status);
-//    });
-    connect(packet, &ResponsePacket::responseStatus, this, &MainWindow::showResponseStatus);
-//    connect(packet, SIGNAL(responseStatus(QString)), this, SLOT(showResponseStatus(QString)));
+    ResponsePacket *packet = new ResponsePacket;
+    connect(packet, &ResponsePacket::responseStatus, [this](const QString &status){
+       m_lblResponseStatus->setText(tr("Status: %1").arg(status));
+    });
+    packet->setPacket(data);
     packet->deleteLater();
     m_lblResponseTraffic->setText(tr("Response: %1 #%2#").arg(++resCount).arg(QString(data.toHex(':').toUpper())));
-}
-
-void MainWindow::showResponseStatus(const QString &status)
-{
-    m_lblResponseStatus->setText(tr("Status: %1").arg(status));
 }
 
 void MainWindow::setControlsEnabled(bool enable)

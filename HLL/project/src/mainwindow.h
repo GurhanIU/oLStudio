@@ -33,7 +33,6 @@ public:
 public slots:
     void threadFinished();
 
-
 private slots:
     void showSettingsRTU();
 
@@ -42,7 +41,7 @@ private slots:
     void threadStateChanged(MasterThread::State);
     void showRequest(const QByteArray &data);
     void showResponse(const QByteArray &data);
-    void showResponseStatus(const QString &status);
+
 
     void openCloseDevice();
 
