@@ -51,6 +51,7 @@ public:
 
 signals:
     void responseStatus(const QString &status);
+    void responseData(const QList<ushort>&);
     void aaaa();
 
 private:

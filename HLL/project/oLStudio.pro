@@ -30,6 +30,7 @@ SOURCES += \
     src/mainwindow.cpp \
     src/forms/settingsrtu.cpp \
     src/objects/commsettings.cpp \
+    src/objects/datamodel.cpp \
     src/objects/masterthread.cpp \
     src/objects/responsepacket.cpp
 
@@ -37,6 +38,7 @@ HEADERS += \
     src/mainwindow.h \
     src/forms/settingsrtu.h \
     src/objects/commsettings.h \
+    src/objects/datamodel.h \
     src/objects/masterthread.h \
     src/objects/responsepacket.h
 

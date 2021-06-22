@@ -13,6 +13,7 @@ class QLabel;
 class CommSettings;
 class SettingsRTU;
 class MasterThread;
+class DataModel;
 
 class MainWindow : public QMainWindow
 {
@@ -33,6 +34,7 @@ public:
 public slots:
     void threadFinished();
 
+
 private slots:
     void showSettingsRTU();
 
@@ -42,11 +44,12 @@ private slots:
     void showRequest(const QByteArray &data);
     void showResponse(const QByteArray &data);
 
-
+    void slInsertData(const QList<ushort> &data);
     void openCloseDevice();
 
 private:
     Ui::MainWindow *ui;
+    DataModel *m_dataModel;
     QLabel *m_statusText;
     QLabel *m_statusInd;
     QLabel *m_lblRequestTraffic;

@@ -34,79 +34,92 @@ void ResponsePacket::initPacket()
     if (m_packet.isEmpty() || m_packet.length() < 6 /*|| m_packet.length() > 260*/) {
         qDebug() << "Paket uzunlugu hatali!";
         return;
-    }
+    }  
 
-    const int idxOfLastEOP = m_packet.lastIndexOf(EOP);
-    const int idxOfFirstEOP = m_packet.indexOf(EOP);
+    QByteArray dataPacket;
+    bool paketBulundu = false;
 
-    if (idxOfLastEOP > idxOfFirstEOP) {
-        // bu durumda paket icerisinde paket olma ihtimalinin 1. adimi gerceklesmistir.
-        if (m_packet.at(idxOfFirstEOP +1) == SOP) {
-            // bu durumda paket icerisinde paket olma ihtimalinin 2. adimi gerceklesmistir.
-            QByteArray newPacket = m_packet.mid(idxOfFirstEOP +1);
-            // Mevcut ResponsePacket nesnesine bagli signal-slot yapilari aktarilamiyor.
-            ResponsePacket *newResponse = new ResponsePacket(newPacket, parent());
-            newResponse->deleteLater();
+    do {
+        int idxOfFirstSOP = m_packet.indexOf(SOP); // ilk AA nin indeksi alinir.
 
-            m_packet = m_packet.left(idxOfFirstEOP +1);
-
-//            qDebug() << "XXX" << QString(newPacket.toHex(':').toUpper()) << QString(m_packet.toHex(':').toUpper());
-        }
-        else
+        if (idxOfFirstSOP == -1 || m_packet.length() <= idxOfFirstSOP +1) // Pakette AA bulunamadiysa cikilir. // Hamsi :)
             return;
-    }
+
+        if (m_packet.at(idxOfFirstSOP +1) < 4) {
+            int dataLength = m_packet.at(idxOfFirstSOP + 2);
+            int estimatedPacketLen = idxOfFirstSOP + dataLength + 2 + 2 +1;
+
+            if (estimatedPacketLen > m_packet.length())
+                return;
+
+            if (m_packet.at(estimatedPacketLen - 1) == EOP) {
+                dataPacket = m_packet.mid(idxOfFirstSOP, estimatedPacketLen);
+
+                if (m_packet.length() > idxOfFirstSOP + dataPacket.length()) {
+                    QByteArray newPacket = m_packet.mid(dataPacket.length());
+                    ResponsePacket *newResponse = new ResponsePacket(newPacket, parent());
+                    newResponse->deleteLater();
+                }
+                paketBulundu = true;
+            }
+            else {
+                m_packet = m_packet.mid(1);
+            }
+        }
+        else {
+            m_packet = m_packet.mid(1);
+        }
+
+    } while (!paketBulundu);
+
+    m_packet = dataPacket;
 
     const int ADR_EOP = m_packet.length() -1;
     const int ADR_CRC = ADR_EOP -1;
 
     int asama = 1;
 
-    if (m_packet.at(ADR_SOP) != SOP || m_packet.at(ADR_EOP) != EOP) {
-        qDebug() << QString("%1. Asama dogrulama gecilemedi. Paket:").arg(asama++).arg(QString(m_packet.toHex(':').toUpper()));
-        return;
-    }
-
-    if (m_packet.at(ADR_FNC) < FC_WRITE_MEM || m_packet.at(ADR_FNC) > FC_CONNECT) {
-        qDebug() << QString("%1. Asama dogrulama gecilemedi. Paket:").arg(asama++).arg(QString(m_packet.toHex(':').toUpper()));
-        return;
-    }
-
     uchar len = m_packet.at(ADR_LEN);
 
-    crcCalculation(ADR_LEN +1, ADR_LEN + len, (uchar)m_packet.at(ADR_CRC));
+    if (!crcCalculation(ADR_LEN +1, ADR_LEN + len, (uchar)m_packet.at(ADR_CRC)))
+        return;
 
     switch (m_packet.at(ADR_FNC)) {
-    case FC_WRITE_MEM:
-    {
-//        qDebug() << QString("Fonksiyon: %1").arg("FC_WRITE_MEM");
-        const uchar pacStatus = (uchar)m_packet.at(ADR_LEN + 1);
-        checkPacketStatus(pacStatus);
-    }
-        break;
-    case FC_WATCH_CONF:
-    {
-//        qDebug() << QString("Fonksiyon: %1").arg("FC_WATCH_CONF");
-        const uchar pacStatus = (uchar)m_packet.at(ADR_LEN + 1);
-        checkPacketStatus(pacStatus);
-    }
-        break;
-    case FC_WATCH_VARS:
-    {
-//        qDebug() << QString("Fonksiyon: %1").arg("FC_WATCH_VARS");
+        case FC_WRITE_MEM:
+        case FC_WATCH_CONF:
+        case FC_CONNECT:
+        {
+            qDebug() << "XX";
+            const uchar pacStatus = (uchar)m_packet.at(ADR_LEN + 1);
+            checkPacketStatus(pacStatus);
+        }
+            break;
 
-        uchar count = m_packet.at(ADR_LEN + 1);
+        case FC_WATCH_VARS:
+        {
+            qDebug() << "FC_WATCH_VARS";
+            uchar dataCount = m_packet.at(ADR_LEN + 1);
+            QList<ushort> listData;
 
-    }
-        break;
-    case FC_CONNECT:
-    {
-//        qDebug() << QString("Fonksiyon: %1").arg("FC_CONNECT");
-        const uchar pacStatus = (uchar)m_packet.at(ADR_LEN + 1);
-        checkPacketStatus(pacStatus);
-    }
-        break;
-    default:
-        break;
+            for (int i=(ADR_LEN + 2); i < (ADR_LEN + 2 + dataCount*2); i+=2) {
+                uchar lsb = m_packet.at(i);
+                uchar msb = m_packet.at(i+1);
+
+                ushort data = ((ushort)msb << 8) | (ushort)lsb;
+                listData.append(data);
+
+//                qDebug() << msb << lsb << data;
+            }
+
+//            qDebug() << listData;
+
+            emit responseData(listData);
+
+        }
+            break;
+
+        default:
+            break;
     }
 }
 

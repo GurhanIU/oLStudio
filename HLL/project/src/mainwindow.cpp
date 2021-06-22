@@ -10,6 +10,7 @@
 #include "commsettings.h"
 #include "settingsrtu.h"
 #include "responsepacket.h"
+#include "datamodel.h"
 
 static int reqCount = 0;
 static int resCount = 0;
@@ -118,14 +119,19 @@ void MainWindow::transaction(bool checked)
         QByteArray data; // cihaz tarafinda haberlesmeyi acar
         data.append((char) 0xAA);
         data.append((char) 0x01);
-        data.append((char) 0x06);
-        data.append((char) 0x01);
+        data.append((char) 0x0B);
+        data.append((char) 0x02);
         data.append((char) 0x22);
         data.append((char) 0xC0);
         data.append((char) 0x00);
         data.append((char) 0x00);
         data.append((char) 0x02);
-        data.append((char) 0xE5);
+        data.append((char) 0x25);
+        data.append((char) 0xC0);
+        data.append((char) 0x00);
+        data.append((char) 0x00);
+        data.append((char) 0x02);
+        data.append((char) 0xCD);
         data.append((char) 0x55);
         m_thread->transaction(data);
     }
@@ -212,6 +218,7 @@ void MainWindow::showRequest(const QByteArray &data)
 void MainWindow::showResponse(const QByteArray &data)
 {
     ResponsePacket *packet = new ResponsePacket;
+    connect(packet, &ResponsePacket::responseData, this, &MainWindow::slInsertData);
     connect(packet, &ResponsePacket::responseStatus, [this](const QString &status){
        m_lblResponseStatus->setText(tr("Status: %1").arg(status));
     });
@@ -241,4 +248,22 @@ void MainWindow::updateStatusBar()
     msg += m_commSettings->parity();
 
     m_statusText->setText(msg);
+}
+
+void MainWindow::slInsertData(const QList<ushort> &data)
+{
+    qDebug() << data;
+
+    int rCount = ui->tableWidget->rowCount();
+
+    ui->tableWidget->setRowCount(rCount+1);
+
+    QTableWidgetItem *item1 = new QTableWidgetItem();
+    item1->setText(QString::number(data.at(0)));
+    QTableWidgetItem *item2 = new QTableWidgetItem();
+    item2->setText(QString::number(data.at(1)));
+//    QTableWidgetItem *item3 = new QTableWidgetItem();
+
+    ui->tableWidget->setItem(rCount, 0, item1);
+    ui->tableWidget->setItem(rCount, 1, item2);
 }
