@@ -509,16 +509,13 @@ void MainWindow::collectRegisters()
         const uint actual = qry.value(rActualIdx).toInt();
         bool ok = false;
         ModbusData *entry = m_modbusEntries->addEntry(qry.value(rIdIdx).toInt(),
-                                                             qry.value(rAddressIdx).toString().toUInt(&ok, 16),
-                                                             QVariant(qry.value(vTypeIdx).toUInt(), (void*)&actual),
-                                                             qry.value(rNameIdx).toString());
+                                                      qry.value(rAddressIdx).toString().toUInt(&ok, 16),
+                                                      QVariant(qry.value(vTypeIdx).toUInt(), (void*)&actual),
+                                                      qry.value(rNameIdx).toString());
 
-        if (entry) {
-            connect(entry, &ModbusData::valueChanged, [this](QVariant value) {
-                int val = value.toInt();
-                this->slActualChanged(val);
-            });
-        }
+//        if (entry) {
+//            connect(entry, &ModbusData::valueChanged, this, &MainWindow::slActualChanged);
+//        }
     }
 }
 
@@ -544,7 +541,7 @@ void MainWindow::updateStatusBar()
     m_statusText->setText(msg);    
 }
 
-void MainWindow::slActualChanged(int value)
+void MainWindow::slActualChanged(const QVariant &value)
 {
     ModbusData *modbusData = qobject_cast<ModbusData*>(sender());
 
@@ -553,9 +550,10 @@ void MainWindow::slActualChanged(int value)
 
     QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
     qry.prepare(QString("UPDATE PARAMETER SET ACTUAL_VALUE = %1 WHERE REGISTER_ID = %2")
-                  .arg(modbusData->data().toUInt())
+                  .arg(value.toString())
                   .arg(modbusData->registerId()));
-    qry.exec();
+    if (!qry.exec())
+        qDebug() << qry.lastError() << qry.lastQuery();
 }
 
 void MainWindow::threadErrorOccured(MasterThread::Error error)

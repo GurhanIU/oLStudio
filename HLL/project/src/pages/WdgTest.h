@@ -51,9 +51,10 @@ public slots:
 
 private slots:
     void actualValueChanged(int value);
+    void actualValueChanged(QString value);
 
     void on_btnStart_clicked();
-    void on_btnStop_clicked();
+    void on_btnStop_clicked();    
 
 private:
     Ui::WdgTest *ui;

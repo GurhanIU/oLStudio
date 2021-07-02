@@ -248,9 +248,14 @@ void WdgTest::actualValueChanged(int value)
     m_model->setData(obj->property("dataIndex").toModelIndex(), QVariant(value), Qt::EditRole);
 }
 
+void WdgTest::actualValueChanged(QString value)
+{
+    QObject *obj = qobject_cast<QObject*>(sender());
+    m_model->setData(obj->property("dataIndex").toModelIndex(), QVariant(value), Qt::EditRole);
+}
+
 void WdgTest::on_btnStart_clicked()
 {
-//    m_dataEntries->writeEntries(m_entryList);
     emit sgRequest(m_requestData);
 }
 
@@ -271,10 +276,6 @@ void WdgTest::on_btnStop_clicked()
 void WdgTest::slResponse(const QByteArray &response)
 {
     ResponsePacket *packet = new ResponsePacket;
-//    connect(packet, &ResponsePacket::responseData, this, &MainWindow::slInsertData);
-//    connect(packet, &ResponsePacket::responseStatus, [this](const QString &status){
-//       m_lblResponseStatus->setText(tr("Status: %1").arg(status));
-//    });
     packet->setPacket(response);
 
     if (packet->isValid()) {
@@ -284,30 +285,19 @@ void WdgTest::slResponse(const QByteArray &response)
 
             int offset = 4;
             foreach (ModbusData *entry, m_entryList) {
-                QMetaType t(entry->dataType());
-                int len = t.sizeOf();
-
+                const int len = QMetaType(entry->dataType()).sizeOf();
                 const QByteArray ba = response.mid(offset, len);
-
-                QVariant v(ba);
                 entry->setData(entry->dataType(), (void*)ba.data());
-
+//                entry->data().convert(entry->dataType());
                 offset += len;
-                entry->data().convert(entry->dataType());
-
-                qDebug() << entry->alias() << entry->data() << QString(ba.toHex(':').toUpper()) << len;
+//                qDebug() << entry->alias() << entry->data() << QString(ba.toHex(':').toUpper()) << len;
             }
         }
         else
-            ui->lblResponse->setText(tr("Packet Size Incorrect!"));
-
-        qDebug() << "-----------------------------------------------------";
-
+            ui->lblResponse->setText(tr("Response: Packet Size Incorrect!"));
     }
     else
-        ui->lblResponse->setText(tr("In Valid Packet!"));
-
-//    qDebug() << response;
+        ui->lblResponse->setText(tr("Response: ---")); //In Valid Packet
 
     packet->deleteLater();
 }

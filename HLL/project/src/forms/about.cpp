@@ -2,7 +2,7 @@
 #include "ui_about.h"
 //#include "modbus-version.h"
 
-const QString VER = "V0.0.0b.3";
+const QString VER = "V0.0.0b.4";
 //const QString LIB_VER = LIBMODBUS_VERSION_STRING;
 const QString URL = "<a href = \"http://www.onlab.com.tr/\">Onlab</a>";
 

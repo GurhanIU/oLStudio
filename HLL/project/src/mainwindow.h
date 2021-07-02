@@ -165,7 +165,7 @@ private slots:
 
     void slPageChanged(const QString &name, const int &id);
 
-    void slActualChanged(int value);
+    void slActualChanged(const QVariant &value);
     void callCreateForm();
     void openCloseDevice();
 

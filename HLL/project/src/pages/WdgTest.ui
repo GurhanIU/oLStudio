@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1023</width>
-    <height>490</height>
+    <height>498</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -34,13 +34,13 @@
      <property name="minimumSize">
       <size>
        <width>0</width>
-       <height>75</height>
+       <height>100</height>
       </size>
      </property>
      <property name="maximumSize">
       <size>
        <width>16777215</width>
-       <height>75</height>
+       <height>100</height>
       </size>
      </property>
      <property name="font">
@@ -75,119 +75,161 @@ QGroupBox::title {
       <bool>true</bool>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
       <item>
-       <widget class="QToolButton" name="btnStart">
-        <property name="enabled">
-         <bool>false</bool>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <property name="leftMargin">
+         <number>5</number>
         </property>
-        <property name="minimumSize">
-         <size>
-          <width>60</width>
-          <height>41</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>70</width>
-          <height>41</height>
-         </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">background-color: rgb(0, 170, 0);</string>
-        </property>
-        <property name="text">
-         <string>START</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../icons/icons.qrc">
-          <normaloff>:/icons/uploadfile.png</normaloff>:/icons/uploadfile.png</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>24</width>
-          <height>24</height>
-         </size>
-        </property>
-        <property name="toolButtonStyle">
-         <enum>Qt::ToolButtonTextBesideIcon</enum>
-        </property>
-       </widget>
+        <item>
+         <widget class="QLabel" name="lblReguest">
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Sorgu:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="lblResponse">
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Cevap:</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
-       <widget class="QToolButton" name="btnStop">
-        <property name="enabled">
-         <bool>false</bool>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <property name="spacing">
+         <number>3</number>
         </property>
-        <property name="minimumSize">
-         <size>
-          <width>60</width>
-          <height>41</height>
-         </size>
+        <property name="topMargin">
+         <number>5</number>
         </property>
-        <property name="maximumSize">
-         <size>
-          <width>70</width>
-          <height>41</height>
-         </size>
+        <property name="rightMargin">
+         <number>5</number>
         </property>
-        <property name="styleSheet">
-         <string notr="true">background-color: rgb(170, 0, 0);</string>
+        <property name="bottomMargin">
+         <number>5</number>
         </property>
-        <property name="text">
-         <string>STOP</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../icons/icons.qrc">
-          <normaloff>:/icons/downloadfile.png</normaloff>:/icons/downloadfile.png</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>24</width>
-          <height>24</height>
-         </size>
-        </property>
-        <property name="toolButtonStyle">
-         <enum>Qt::ToolButtonTextBesideIcon</enum>
-        </property>
-       </widget>
+        <item alignment="Qt::AlignRight">
+         <widget class="QToolButton" name="btnStart">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>32</width>
+            <height>32</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>32</width>
+            <height>32</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: lightgrey;
+border: 1px solid grey;
+border-radius: 5px;</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../icons/icons.qrc">
+            <normaloff>:/icons/Start-icon.png</normaloff>:/icons/Start-icon.png</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>24</width>
+            <height>24</height>
+           </size>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonIconOnly</enum>
+          </property>
+         </widget>
+        </item>
+        <item alignment="Qt::AlignRight|Qt::AlignBottom">
+         <widget class="QToolButton" name="btnStop">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>32</width>
+            <height>32</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>32</width>
+            <height>32</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: lightgrey;
+border: 1px solid grey;
+border-radius: 5px;</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../icons/icons.qrc">
+            <normaloff>:/icons/Stop-red-icon.png</normaloff>:/icons/Stop-red-icon.png</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>24</width>
+            <height>24</height>
+           </size>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonIconOnly</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="lblReguest">
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>30</height>
-      </size>
-     </property>
-     <property name="font">
-      <font>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Sorgu:</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="lblResponse">
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>30</height>
-      </size>
-     </property>
-     <property name="font">
-      <font>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Cevap:</string>
-     </property>
     </widget>
    </item>
    <item>
