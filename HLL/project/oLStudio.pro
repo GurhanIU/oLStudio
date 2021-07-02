@@ -1,12 +1,13 @@
 #-------------------------------------------------
 #
-# Project created by QtCreator 2021-06-16T00:01:26
+# Project created by QtCreator 2021-07-02T21:12:26
 #
 # @author M.Gurhan SANCAR
-# @project OnLab - oLStudio
+# @project oLStudio
 #-------------------------------------------------
 
-QT       += core gui sql serialbus serialport
+
+QT += core gui sql xml concurrent serialbus serialport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -22,32 +23,73 @@ QMAKE_CXXFLAGS += -std=c++11
 
 INCLUDEPATH += \
     objects \
-    forms
+    forms \
+    shared \
+#    uilib \
+    abstractions \
+    components
+
+include(src/shared/shared.pri)
+#include(src/uilib/uilib.pri)
+include(src/abstractions/abstractions.pri)
+include(src/components/components.pri)
+
 
 
 SOURCES += \
     src/main.cpp \
-    src/mainwindow.cpp \
+    src/MainWindow.cpp \
+    src/forms/DlgAddress.cpp \
+    src/forms/DlgParameter.cpp \
+    src/forms/dlgmenu.cpp \
+    src/forms/dlgmodbusfunction.cpp \
+    src/forms/dlgpageutil.cpp \
+    src/forms/dlgpairmenupage.cpp \
     src/forms/settingsrtu.cpp \
+    src/forms/settings.cpp \
+    src/forms/about.cpp \
     src/objects/commsettings.cpp \
-    src/objects/datamodel.cpp \
+    src/objects/editablesqlmodel.cpp \
+    src/objects/modbusdata.cpp \
+    src/objects/modbusdataentries.cpp \
     src/objects/masterthread.cpp \
-    src/objects/responsepacket.cpp
+    src/objects/responsepacket.cpp \
+    src/pages/WdgTest.cpp
 
 HEADERS += \
-    src/mainwindow.h \
+    src/initdb.h \
+    src/MainWindow.h \
+    src/forms/DlgAddress.h \
+    src/forms/DlgParameter.h \
+    src/forms/dlgmenu.h \
+    src/forms/dlgmodbusfunction.h \
+    src/forms/dlgpageutil.h \
+    src/forms/dlgpairmenupage.h \
     src/forms/settingsrtu.h \
+    src/forms/settings.h \
+    src/forms/about.h \
     src/objects/commsettings.h \
-    src/objects/datamodel.h \
+    src/objects/editablesqlmodel.h \
+    src/objects/modbusdata.h \
+    src/objects/modbusdataentries.h \
     src/objects/masterthread.h \
-    src/objects/responsepacket.h
+    src/objects/responsepacket.h \
+    src/pages/WdgTest.h
 
 FORMS += \
-    src/mainwindow.ui \
-    src/forms/settingsrtu.ui
+    src/MainWindow.ui \
+    src/forms/settingsrtu.ui \
+    src/forms/settings.ui \
+    src/forms/DlgAddress.ui \
+    src/forms/DlgParameter.ui \
+    src/forms/dlgmenu.ui \
+    src/forms/about.ui \
+    src/forms/dlgmodbusfunction.ui \
+    src/forms/dlgpageutil.ui \
+    src/forms/dlgpairmenupage.ui \
+    src/pages/WdgTest.ui
 
 RESOURCES += \
-#    src/etreewidget/formeditor.qrc \
     src/icons/icons.qrc
 
 win32:LIBS += -lsetupapi -lwsock32 -lws2_32
@@ -55,9 +97,14 @@ win32:LIBS += -lsetupapi -lwsock32 -lws2_32
 INCLUDEPATH += $$PWD/src $$PWD/src/objects $$PWD/src/forms
 DEPENDPATH += $$PWD/src $$PWD/src/objects $$PWD/src/forms
 
+
+TRANSLATIONS += \
+    src/app_tr_TR.ts
+
 win32 {
-   RC_FILE      = oLStudio.rc
+   RC_FILE      = app.rc
 }
+
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

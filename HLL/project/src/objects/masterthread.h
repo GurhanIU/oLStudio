@@ -75,6 +75,9 @@ public:
 
     bool setConfig(const QString &portName, QSerialPort::BaudRate baudRate, QSerialPort::Parity parity, QSerialPort::DataBits dataBits, QSerialPort::StopBits stopBits, int waitTimeout);
 
+    MasterThread::State state() const;
+    void setState(const State &state);
+
 public slots:
     void openPort();
     void closePort();
@@ -86,6 +89,7 @@ signals:
     void request(const QByteArray &data);
 
 private:
+    State m_state;
     QString m_portName;
     QSerialPort::Parity m_parity;
     QSerialPort::BaudRate m_baudRate;

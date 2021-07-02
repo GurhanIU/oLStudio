@@ -38,8 +38,11 @@
 
 QT_USE_NAMESPACE
 
-MasterThread::MasterThread(QObject *parent)
-    : QThread(parent), m_waitTimeout(0), m_quit(false)
+MasterThread::MasterThread(QObject *parent) :
+    QThread(parent),
+    m_waitTimeout(0),
+    m_quit(false),
+    m_state(UnconnectedState)
 {
     qRegisterMetaType<MasterThread::Error>();
     qRegisterMetaType<MasterThread::State>();
@@ -98,6 +101,17 @@ void MasterThread::closePort()
     m_cond.wakeOne();
 }
 
+MasterThread::State MasterThread::state() const
+{
+    return m_state;
+}
+
+void MasterThread::setState(const State &state)
+{
+    m_state = state;
+    emit stateChanged(m_state);
+}
+
 void MasterThread::transaction(const QByteArray &data)
 {
     QMutexLocker locker(&m_mutex);
@@ -118,13 +132,13 @@ void MasterThread::run()
     // Burada thread in kilidini aciyor.
     m_mutex.unlock();
 
-    emit stateChanged(MasterThread::ConnectingState);
+    setState(MasterThread::ConnectingState);
     QSerialPort serial;    
     serial.setPortName(currentPortName);
 
     if (!serial.open(QIODevice::ReadWrite)) {
         emit errorOccurred(MasterThread::ConnectionError);
-        emit stateChanged(MasterThread::UnconnectedState);
+        setState(MasterThread::UnconnectedState);
         return;
     }
 
@@ -135,10 +149,10 @@ void MasterThread::run()
     configStatus &= serial.setStopBits(QSerialPort::OneStop);
 
     if (!configStatus) {
-        emit stateChanged(MasterThread::ClosingState);
+        setState(MasterThread::ClosingState);
         emit errorOccurred(MasterThread::ConfigurationError);
         serial.close();
-        emit stateChanged(MasterThread::UnconnectedState);
+        setState(MasterThread::UnconnectedState);
         return;
     }
 
@@ -147,7 +161,7 @@ void MasterThread::run()
 
     // Thread i kitliyor ve beklemeye basliyor.
     m_mutex.lock();
-    emit stateChanged(MasterThread::ConnectedState);
+    setState(MasterThread::ConnectedState);
     m_cond.wait(&m_mutex); // Port islemleri yapildi ve transaction bekleniyor!
     m_mutex.unlock();
 
@@ -160,16 +174,18 @@ void MasterThread::run()
                 // read response
                 if (serial.waitForReadyRead(currentWaitTimeout)) {
                     QByteArray responseData = serial.readAll();
+
                     while (serial.waitForReadyRead(20))
                         responseData += serial.readAll();
+
                     emit this->response(responseData);
                 }
                 else {
-                    emit errorOccurred(MasterThread::TimeoutError);
+                    emit this->errorOccurred(MasterThread::TimeoutError);
                 }
             }
             else {
-                emit errorOccurred(MasterThread::TimeoutError);
+                emit this->errorOccurred(MasterThread::TimeoutError);
             }
 
             requestData.clear();
@@ -183,7 +199,7 @@ void MasterThread::run()
                 emit this->response(responseData);
             }
             else {
-                emit errorOccurred(MasterThread::TimeoutError);
+                emit this->errorOccurred(MasterThread::TimeoutError);
             }
         }
 
@@ -196,7 +212,7 @@ void MasterThread::run()
         m_mutex.unlock();
     }
 
-    emit stateChanged(MasterThread::ClosingState);
+    setState(MasterThread::ClosingState);
     serial.close();
-    emit stateChanged(MasterThread::UnconnectedState);
+    setState(MasterThread::UnconnectedState);
 }

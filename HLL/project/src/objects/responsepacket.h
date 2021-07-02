@@ -49,6 +49,9 @@ public:
     QByteArray packet() const;
     void setPacket(const QByteArray &packet);
 
+    bool isValid() const;
+//    void setValid(bool valid);
+
 signals:
     void responseStatus(const QString &status);
     void responseData(const QList<ushort>&);
@@ -56,6 +59,8 @@ signals:
 
 private:
     QByteArray m_packet;
+
+    bool m_valid;
 
     void initPacket();
 

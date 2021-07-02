@@ -1,14 +1,17 @@
 #include "responsepacket.h"
 #include <QDebug>
 
-ResponsePacket::ResponsePacket(QObject *parent) : QObject(parent)
+ResponsePacket::ResponsePacket(QObject *parent) :
+    QObject(parent),
+    m_valid(false)
 {
 
 }
 
-ResponsePacket::ResponsePacket(const QByteArray &packet, QObject *parent)
-    : QObject(parent)
-    , m_packet(packet)
+ResponsePacket::ResponsePacket(const QByteArray &packet, QObject *parent) :
+    QObject(parent),
+    m_packet(packet),
+    m_valid(false)
 {
     initPacket();
 }
@@ -27,6 +30,11 @@ void ResponsePacket::setPacket(const QByteArray &packet)
 {
     m_packet = packet;
     initPacket();
+}
+
+bool ResponsePacket::isValid() const
+{
+    return m_valid;
 }
 
 void ResponsePacket::initPacket()
@@ -77,8 +85,6 @@ void ResponsePacket::initPacket()
     const int ADR_EOP = m_packet.length() -1;
     const int ADR_CRC = ADR_EOP -1;
 
-    int asama = 1;
-
     uchar len = m_packet.at(ADR_LEN);
 
     if (!crcCalculation(ADR_LEN +1, ADR_LEN + len, (uchar)m_packet.at(ADR_CRC)))
@@ -97,23 +103,20 @@ void ResponsePacket::initPacket()
 
         case FC_WATCH_VARS:
         {
-            qDebug() << "FC_WATCH_VARS";
-            uchar dataCount = m_packet.at(ADR_LEN + 1);
-            QList<ushort> listData;
+            m_valid = true;
+//            qDebug() << "FC_WATCH_VARS";
+//            uchar dataCount = m_packet.at(ADR_LEN + 1);
+//            QList<ushort> listData;
 
-            for (int i=(ADR_LEN + 2); i < (ADR_LEN + 2 + dataCount*2); i+=2) {
-                uchar lsb = m_packet.at(i);
-                uchar msb = m_packet.at(i+1);
+//            for (int i=(ADR_LEN + 2); i < (ADR_LEN + 2 + dataCount*2); i+=2) {
+//                uchar lsb = m_packet.at(i);
+//                uchar msb = m_packet.at(i+1);
 
-                ushort data = ((ushort)msb << 8) | (ushort)lsb;
-                listData.append(data);
+//                ushort data = ((ushort)msb << 8) | (ushort)lsb;
+//                listData.append(data);
+//            }
 
-//                qDebug() << msb << lsb << data;
-            }
-
-//            qDebug() << listData;
-
-            emit responseData(listData);
+//            emit responseData(listData);
 
         }
             break;
