@@ -162,6 +162,7 @@ private slots:
     void slShowMenu();
     void slShowPageUtil();
     void slShowPairMenuPage();
+    void slShowPairRegisterPage();
 
     void slPageChanged(const QString &name, const int &id);
 

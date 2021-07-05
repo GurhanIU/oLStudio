@@ -105,7 +105,7 @@
    </widget>
    <widget class="QMenu" name="factoryMenu">
     <property name="enabled">
-     <bool>false</bool>
+     <bool>true</bool>
     </property>
     <property name="title">
      <string>Fabrika</string>
@@ -119,6 +119,7 @@
     <addaction name="actionNew_Menu"/>
     <addaction name="actionNew_Page"/>
     <addaction name="actionPair_Menu_Page"/>
+    <addaction name="actionPair_RegisterPage"/>
    </widget>
    <widget class="QMenu" name="menuAyarlar">
     <property name="title">
@@ -291,6 +292,9 @@
    </property>
   </action>
   <action name="actionNew_Parameter">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset resource="icons/icons.qrc">
      <normaloff>:/icons/Header16.png</normaloff>:/icons/Header16.png</iconset>
@@ -339,6 +343,9 @@
    </property>
   </action>
   <action name="actionPair_Menu_Page">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset resource="icons/icons.qrc">
      <normaloff>:/icons/data-sort-16.png</normaloff>:/icons/data-sort-16.png</iconset>
@@ -372,6 +379,21 @@
    </property>
    <property name="toolTip">
     <string>Kaydet</string>
+   </property>
+  </action>
+  <action name="actionPair_RegisterPage">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="icons/icons.qrc">
+     <normaloff>:/icons/data-sort-16.png</normaloff>:/icons/data-sort-16.png</iconset>
+   </property>
+   <property name="text">
+    <string>Pair Page - Register</string>
+   </property>
+   <property name="toolTip">
+    <string>Pair Registers With Page</string>
    </property>
   </action>
  </widget>

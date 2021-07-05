@@ -3,86 +3,73 @@
 
 #include "abstractformeditor.h"
 
-#include <QCheckBox>
-#include <QDataWidgetMapper>
 #include <QSql>
 #include <QSqlField>
 #include <QSqlQuery>
 #include <QSqlRecord>
-#include <QSqlTableModel>
-//#include <QSqlTableDelegate>
-#include <QModelIndexList>
 #include <QSqlError>
-#include <QMessageBox>
-#include <QDebug>
+#include <QSqlQueryModel>
+#include <QSqlTableModel>
+
+#include <QCheckBox>
+#include <QPushButton>
 
 DlgPairMenuPage::DlgPairMenuPage(EDesignerFormEditorInterface *core, QWidget *parent) :
     m_core(core),
+    m_menuId(-1),
+    m_dataChanged(false),
     QDialog(parent),
     ui(new Ui::DlgPairMenuPage)
 {
     ui->setupUi(this);
 
-    QSqlDatabase db = QSqlDatabase::database(m_core->dbFile());
+    ui->buttonBox->button(QDialogButtonBox::Apply)->setEnabled(false);
+    ui->buttonBox->button(QDialogButtonBox::Discard)->setEnabled(false);
 
     // Menu Initilization
     ui->tblMenu->setAlternatingRowColors(true);
     ui->tblMenu->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tblMenu->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->tblMenu->setSelectionMode( QAbstractItemView::SingleSelection );
+    ui->tblMenu->resizeColumnsToContents();
+//    ui->tblMenu->setShowGrid(false);
+    ui->tblMenu->setAutoFillBackground(true);
+
     ui->tblMenu->horizontalHeader()->setStretchLastSection(true);
     ui->tblMenu->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
-    ui->tblMenu->verticalHeader()->setVisible(true);
+    ui->tblMenu->verticalHeader()->setVisible(false);
 
     ui->tblMenu->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     ui->tblMenu->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     ui->tblMenu->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     ui->tblMenu->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
 
-    QSqlTableModel *mdlMenu = new QSqlTableModel(this, db);
-    mdlMenu->setTable("MENU");
-    mdlMenu->setEditStrategy(QSqlTableModel::OnManualSubmit);
-    mdlMenu->setHeaderData(mdlMenu->fieldIndex("NAME"), Qt::Horizontal, trUtf8("MENU NAMES"));
-
-    // Populate the model
-    if (!mdlMenu->select())
-    {
-        showError(mdlMenu->lastError());
-        return;
-    }
-
-    ui->tblMenu->setModel(mdlMenu);
-    ui->tblMenu->setColumnHidden(mdlMenu->fieldIndex("ID"), true);
-    ui->tblMenu->setColumnHidden(mdlMenu->fieldIndex("OPERATION_ID"), true);
-    ui->tblMenu->resizeColumnsToContents();
-
-//    QAbstractItemModel *model = ui->tblMenu->model();
-//    QModelIndexList matches = mdlMenu->match( mdlMenu->index(0,0), Qt::UserRole, "ID001" );
-
-//    foreach( const QModelIndex &index, matches )
-//    {
-//        QTableWidgetItem *item = ui->tblMenu->item( index.row(), index.column() );
-//        // Do something with your new-found item ...
-//    }
-
     // Page Initilization
     ui->tblPage->setAlternatingRowColors(true);
     ui->tblPage->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tblPage->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->tblPage->setSelectionMode( QAbstractItemView::MultiSelection );
+    ui->tblPage->setSelectionMode( QAbstractItemView::SingleSelection );
+    ui->tblPage->resizeColumnsToContents();
     ui->tblPage->horizontalHeader()->setStretchLastSection(true);
     ui->tblPage->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
-    ui->tblPage->verticalHeader()->setVisible(true);
+    ui->tblPage->verticalHeader()->setVisible(false);
 
     ui->tblPage->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     ui->tblPage->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     ui->tblPage->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     ui->tblPage->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
 
+    connect(ui->tblMenu, &QTableView::clicked, this, &DlgPairMenuPage::slTableMenuClicked);
+    connect(this, &DlgPairMenuPage::sgMenuChanged, this, &DlgPairMenuPage::slUpdatePageModel);
+
+    QSqlDatabase db = QSqlDatabase::database(m_core->dbFile());
+    QSqlTableModel *mdlMenu = new QSqlTableModel(ui->tblMenu, db);
+    mdlMenu->setTable("MENU");
+    ui->tblMenu->setModel(mdlMenu);
+    ui->tblMenu->setColumnHidden(mdlMenu->record().indexOf("OPERATION_ID"), true);
+
     QSqlQueryModel *mdlPage = new QSqlQueryModel(ui->tblPage);
     ui->tblPage->setModel(mdlPage);
-
-    slUpdateModelByPageId(1);
 }
 
 DlgPairMenuPage::~DlgPairMenuPage()
@@ -90,44 +77,122 @@ DlgPairMenuPage::~DlgPairMenuPage()
     delete ui;
 }
 
-
 void DlgPairMenuPage::showError(const QSqlError &err)
 {
     QMessageBox::critical(this, "Unable to initialize Database",
                 "Error initializing database: " + err.text());
 }
 
-void DlgPairMenuPage::on_tblMenu_clicked(const QModelIndex &index)
+void DlgPairMenuPage::showEvent(QShowEvent *e)
 {
+    QDialog::showEvent(e);
 
+    slUpdateMenuModel();
 }
 
-void DlgPairMenuPage::slUpdateModelByPageId(const int &id)
+void DlgPairMenuPage::on_DlgPairMenuPage_finished(int result)
 {
-    QSqlDatabase db = QSqlDatabase::database(m_core->dbFile());
+    if( m_dataChanged )
+        emit ui->buttonBox->button(QDialogButtonBox::Close)->clicked();
+}
 
-    QSqlQueryModel *model = qobject_cast<QSqlQueryModel*>(ui->tblPage->model());
-    model->setQuery(QString("SELECT m.NAME AS MENU, p.NAME AS PAGE  FROM MENU_PAGE AS mp \
-                            INNER JOIN MENU as m ON m.ID = mp.MENU_ID \
-                            INNER JOIN PAGE as p ON p.ID = mp.PAGE_ID \
-                            WHERE m.ID =%1").arg(id), db);
+void DlgPairMenuPage::slUpdateMenuModel()
+{
+    QSqlTableModel *model = qobject_cast<QSqlTableModel*>(ui->tblMenu->model());
 
-    model->insertColumn(0); // For Checkbox
-
-    if (model->lastError().isValid())
-    {
+    // Populate the model
+    if (!model->select()) {
         showError(model->lastError());
         return;
     }
 
-    for (int p = 0; p < model->rowCount(); p++)
-    {
-        ui->tblPage ->setIndexWidget(model ->index(p,0),new QCheckBox());
+    model->setHeaderData(model->fieldIndex("NAME"), Qt::Horizontal, trUtf8("MENU"));
+    ui->tblMenu->setColumnHidden(model->fieldIndex("ID"), true);
+}
+
+void DlgPairMenuPage::slTableMenuClicked(const QModelIndex &index)
+{
+    if (!index.isValid())
+        return;
+
+    QSqlTableModel *mdlMenu = qobject_cast<QSqlTableModel*>(ui->tblMenu->model());
+    int menuId = mdlMenu->data(mdlMenu->index(index.row(), mdlMenu->fieldIndex("ID"))).toInt();
+
+    if (m_menuId != menuId) {
+        m_menuId = menuId;
+        emit sgMenuChanged(menuId);
+    }
+}
+
+void DlgPairMenuPage::slUpdatePageModel(int menuId)
+{
+    if (menuId < 1)
+        return;
+
+    ui->tblPage->reset();
+    qDeleteAll(findChildren<QCheckBox*>());
+
+    const QSqlDatabase db = QSqlDatabase::database(m_core->dbFile());
+    QSqlQueryModel *model = qobject_cast<QSqlQueryModel*>(ui->tblPage->model());
+    model->clear();
+    model->setQuery(QString("SELECT p.ID AS ID, p.NAME AS NAME, '0' AS STATUS  \
+                                FROM PAGE AS p \
+                                LEFT JOIN MENU_PAGE AS mp ON mp.PAGE_ID = p.ID \
+                                WHERE mp.PAGE_ID ISNULL \
+                            UNION \
+                                SELECT p.ID AS ID, p.NAME AS NAME, '1' AS STATUS \
+                                FROM PAGE AS p \
+                                INNER JOIN MENU_PAGE AS mp ON mp.PAGE_ID = p.ID \
+                                WHERE mp.MENU_ID = '%1' \
+                            GROUP BY p.ID ORDER BY STATUS DESC, p.ID ASC;").arg(menuId), db);
+
+    if (model->lastError().isValid()) {
+        showError(model->lastError());
+        return;
     }
 
-    model->setHeaderData(0, Qt::Horizontal, trUtf8("#"));
-    model->setHeaderData(model->record().indexOf("PAGE"), Qt::Horizontal, trUtf8("PAGE NAMES"));
-    ui->tblPage->setColumnHidden(model->record().indexOf("MENU"), true);
+    model->insertColumn(0); // For Checkbox
+    int ckbIdx = 0;
+    int rIdIdx = model->record().indexOf("ID");
+    int rNameIdx = model->record().indexOf("NAME");
+    int stsIdx = model->record().indexOf("STATUS");
+
+    model->setHeaderData(ckbIdx, Qt::Horizontal, trUtf8("PAGE"));
+    ui->tblPage->setColumnHidden(rNameIdx, true);
+    ui->tblPage->setColumnHidden(rIdIdx, true);
+    ui->tblPage->setColumnHidden(stsIdx, true);
+
+    for (int row = 0; row < model->rowCount(); row++) {
+        QCheckBox *ckb = new QCheckBox(model->record(row).value(rNameIdx).toString(), this);
+        ckb->setProperty("menuId", menuId);
+        ckb->setProperty("pageId", model->record(row).value(rIdIdx).toInt());
+        ckb->setChecked(model->record(row).value(stsIdx).toBool());
+
+        connect(ckb, &QCheckBox::stateChanged, [=](int state) {
+            QString text;
+
+            if (ckb->checkState() == Qt::Unchecked) {
+                text = QString("DELETE FROM MENU_PAGE WHERE MENU_ID = '%1' AND PAGE_ID = '%2';")
+                                .arg(ckb->property("menuId").toInt())
+                                .arg(ckb->property("pageId").toInt());
+            }
+            else {
+                text = QString("INSERT INTO MENU_PAGE (MENU_ID, PAGE_ID) VALUES ('%1', '%2');")
+                                .arg(ckb->property("menuId").toInt())
+                                .arg(ckb->property("pageId").toInt());
+            }
+
+            QSqlDatabase db = QSqlDatabase::database(m_core->dbFile());
+            db.transaction();
+            QSqlQuery qry = QSqlQuery(db);
+            if (!qry.exec(text))
+                showError(qry.lastError());
+
+            this->changeButtonsStatus(true);
+        });
+
+        ui->tblPage->setIndexWidget(model->index(row, ckbIdx), ckb);
+    }
 
     ui->tblPage->viewport()->update();
     ui->tblPage->setVisible(false);
@@ -139,8 +204,51 @@ void DlgPairMenuPage::slUpdateModelByPageId(const int &id)
     ui->tblPage->resizeRowsToContents();
     ui->tblPage->viewport()->setGeometry(vporig);
     ui->tblPage->setVisible(true);
-
     ui->tblPage->update();
+}
 
-//    ui->tblPage->setCurrentIndex(model->index(0, 0));
+void DlgPairMenuPage::on_buttonBox_clicked(QAbstractButton *button)
+{
+    if ((QPushButton *)button == ui->buttonBox->button(QDialogButtonBox::Apply))
+        apply();
+    else if ((QPushButton *)button == ui->buttonBox->button(QDialogButtonBox::Discard))
+        discard();
+    else {
+        comfirm() == QMessageBox::Apply ? apply() : discard();
+        done(0);
+    }
+}
+
+QMessageBox::StandardButton DlgPairMenuPage::comfirm()
+{
+    QMessageBox::StandardButton ret = QMessageBox::NoButton;
+    if (m_dataChanged)
+        ret = QMessageBox::warning(this, tr("The document has been modified."),
+                                     tr("Do you want to apply your changes?"), QMessageBox::Apply | QMessageBox::Discard /*| QMessageBox::Cancel*/ );
+    return ret;
+}
+
+void DlgPairMenuPage::apply()
+{
+    QSqlDatabase db = QSqlDatabase::database(m_core->dbFile());
+    db.commit();
+
+    changeButtonsStatus(false);
+    emit sgMenuChanged(m_menuId);
+}
+
+void DlgPairMenuPage::discard()
+{
+    QSqlDatabase db = QSqlDatabase::database(m_core->dbFile());
+    db.rollback();
+
+    changeButtonsStatus(false);
+    emit sgMenuChanged(m_menuId);
+}
+
+void DlgPairMenuPage::changeButtonsStatus(bool status)
+{
+    m_dataChanged = status;
+    ui->buttonBox->button(QDialogButtonBox::Apply)->setEnabled(status);
+    ui->buttonBox->button(QDialogButtonBox::Discard)->setEnabled(status);
 }

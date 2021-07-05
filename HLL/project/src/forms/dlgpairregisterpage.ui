@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>DlgPairMenuPage</class>
- <widget class="QDialog" name="DlgPairMenuPage">
+ <class>DlgPairRegiserPage</class>
+ <widget class="QDialog" name="DlgPairRegiserPage">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,10 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Pair Menu With Pages</string>
-  </property>
-  <property name="styleSheet">
-   <string notr="true"/>
+   <string>Pair Page With Registers</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -37,7 +34,7 @@
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
-     <widget class="QTableView" name="tblMenu">
+     <widget class="QTableView" name="tblPage">
       <property name="styleSheet">
        <string notr="true">QHeaderView::section {    
 	background-color: rgb(227, 227, 227);
@@ -48,17 +45,8 @@
 	font: 10pt &quot;MS Shell Dlg 2&quot;;
 }</string>
       </property>
-      <attribute name="horizontalHeaderCascadingSectionResizes">
-       <bool>false</bool>
-      </attribute>
-      <attribute name="horizontalHeaderHighlightSections">
-       <bool>false</bool>
-      </attribute>
-      <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-       <bool>false</bool>
-      </attribute>
      </widget>
-     <widget class="QTableView" name="tblPage">
+     <widget class="QTableView" name="tblRegister">
       <property name="styleSheet">
        <string notr="true">QHeaderView::section {    
 	background-color: rgb(227, 227, 227);

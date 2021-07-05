@@ -197,10 +197,8 @@ void DlgMenu::on_btnCancelNew_clicked()
 
 void DlgMenu::on_DlgMenu_finished(int result)
 {
-    if( m_dataChanged )
-    {
-        if( result == QDialog::Rejected )
-        {
+    if( m_dataChanged ) {
+        if( result == QDialog::Rejected ) {
             int ret = QMessageBox::warning(this, tr("The document has been modified."),
                                          tr("Do you want to save your changes?"), QMessageBox::Save | QMessageBox::Discard /*| QMessageBox::Cancel*/ );
 

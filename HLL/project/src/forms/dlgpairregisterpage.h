@@ -1,5 +1,5 @@
-#ifndef DLGPAIRMENUPAGE_H
-#define DLGPAIRMENUPAGE_H
+#ifndef DLGPAIRREGISTERPAGE_H
+#define DLGPAIRREGISTERPAGE_H
 
 #include <QDialog>
 #include <QMessageBox>
@@ -9,36 +9,36 @@ class QSqlError;
 class QAbstractButton;
 
 namespace Ui {
-class DlgPairMenuPage;
+class DlgPairRegiserPage;
 }
 
 class EDesignerFormEditorInterface;
 
-class DlgPairMenuPage : public QDialog
+class DlgPairRegisterPage : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit DlgPairMenuPage(EDesignerFormEditorInterface *core, QWidget *parent = nullptr);
-    ~DlgPairMenuPage();
+    explicit DlgPairRegisterPage(EDesignerFormEditorInterface *core, QWidget *parent = nullptr);
+    ~DlgPairRegisterPage();
 
 signals:
-    void sgMenuChanged(int);
+    void sgPageChanged(int);
 
 private slots:
-    void slUpdateMenuModel();
-    void slUpdatePageModel(int menuId);
-    void slTableMenuClicked(const QModelIndex &index);
+    void slUpdatePageModel();
+    void slUpdateRegisterModel(int pageId);
+    void slTablePageClicked(const QModelIndex &index);
 
     void on_buttonBox_clicked(QAbstractButton *button);    
-    void on_DlgPairMenuPage_finished(int result);
+    void on_DlgPairRegiserPage_finished(int result);
 
 private:
-    Ui::DlgPairMenuPage *ui;
+    Ui::DlgPairRegiserPage *ui;
     EDesignerFormEditorInterface *m_core;
 
     bool m_dataChanged;
-    int m_menuId;
+    int m_pageId;
 
     void showEvent(QShowEvent *e);
 
@@ -50,4 +50,4 @@ private:
     void showError(const QSqlError &err);
 };
 
-#endif // DLGPAIRMENUPAGE_H
+#endif // DLGPAIRREGISTERPAGE_H

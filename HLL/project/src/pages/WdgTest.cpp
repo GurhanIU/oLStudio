@@ -183,8 +183,7 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
         QWidget *w;
         w = wFactory->createWidget("QLabel", groupBox);
 
-        if (w == 0)
-        {
+        if (w == 0) {
             qDebug() << "hata";
             return;
         }
@@ -234,11 +233,9 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
     ui->grpToolBox->show();
     ui->lblReguest->show();
     ui->lblResponse->show();
-    #ifdef QT_DEBUG
-    ui->tableView->show();
-    #else
-    ui->tableView->hide();
-    #endif
+//    #ifndef QT_DEBUG
+//    ui->tableView->hide();
+//    #endif
     ui->scrollArea->show();
 }
 

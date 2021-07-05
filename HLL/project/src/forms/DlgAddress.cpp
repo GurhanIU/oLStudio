@@ -96,8 +96,7 @@ DlgAddress::DlgAddress(EDesignerFormEditorInterface *core,QWidget *parent) :
     m_model->setHeaderData(unitIdx, Qt::Horizontal, trUtf8("UNIT"));
 
     // Populate the model
-    if (!m_model->select())
-    {
+    if (!m_model->select()) {
         showError(m_model->lastError());
         return;
     }

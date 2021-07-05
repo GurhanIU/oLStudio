@@ -32,6 +32,7 @@
 #include "forms/dlgmenu.h"
 #include "forms/dlgpageutil.h"
 #include "forms/dlgpairmenupage.h"
+#include "forms/dlgpairregisterpage.h"
 
 #include "edesigner_components.h"
 #include "abstractformeditor.h"
@@ -223,6 +224,7 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
     connect(ui->actionNew_Menu, SIGNAL(triggered()), this, SLOT(slShowMenu()));
     connect(ui->actionNew_Page, SIGNAL(triggered()), this, SLOT(slShowPageUtil()));
     connect(ui->actionPair_Menu_Page, SIGNAL(triggered()), this, SLOT(slShowPairMenuPage()));
+    connect(ui->actionPair_RegisterPage, &QAction::triggered, this, &MainWindow::slShowPairRegisterPage);
 
     //UI - dialogs
     m_dlgAbout = new About();
@@ -252,8 +254,6 @@ void MainWindow::callCreateForm()
     ui->actionSave_Session->setEnabled(false);
 
     QStringList args = QApplication::arguments();
-
-    qDebug() << args;
 
     QString selectedFileName;
     if (args.count() == 2) {
@@ -449,6 +449,12 @@ void MainWindow::slShowPairMenuPage()
     page.exec();
 }
 
+void MainWindow::slShowPairRegisterPage()
+{
+    DlgPairRegisterPage page(m_core);
+    page.exec();
+}
+
 void MainWindow::slPageChanged(const QString &name, const int &id)
 {
     //    qDebug() << id << name;
@@ -460,7 +466,7 @@ void MainWindow::closeEvent(QCloseEvent *e)
     case AcceptCloseEvents:
         QMainWindow::closeEvent(e);
         break;
-      case EmitCloseEventSignal:
+    case EmitCloseEventSignal:
         QSqlDatabase::database(m_dbFile).close();
         QSqlDatabase::removeDatabase(m_dbFile);
         emit closeEventReceived(e);

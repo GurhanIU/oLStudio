@@ -45,6 +45,7 @@ SOURCES += \
     src/forms/dlgmodbusfunction.cpp \
     src/forms/dlgpageutil.cpp \
     src/forms/dlgpairmenupage.cpp \
+	src/forms/dlgpairregisterpage.cpp \
     src/forms/settingsrtu.cpp \
     src/forms/settings.cpp \
     src/forms/about.cpp \
@@ -65,6 +66,7 @@ HEADERS += \
     src/forms/dlgmodbusfunction.h \
     src/forms/dlgpageutil.h \
     src/forms/dlgpairmenupage.h \
+	src/forms/dlgpairregisterpage.h \
     src/forms/settingsrtu.h \
     src/forms/settings.h \
     src/forms/about.h \
@@ -87,6 +89,7 @@ FORMS += \
     src/forms/dlgmodbusfunction.ui \
     src/forms/dlgpageutil.ui \
     src/forms/dlgpairmenupage.ui \
+	src/forms/dlgpairregisterpage.ui \
     src/pages/WdgTest.ui
 
 RESOURCES += \
