@@ -62,6 +62,8 @@ private:
     QString m_alias;
 };
 
+//Q_DECLARE_METATYPE(ModbusData)
+
 // Sadece primitive turler kabul edilmeli. Pointer olmamali.
 template<typename T>
 inline void ModbusData::setData(const T &adata)

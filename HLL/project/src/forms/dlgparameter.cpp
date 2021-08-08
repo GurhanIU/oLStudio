@@ -1,4 +1,4 @@
-#include "DlgParameter.h"
+#include "dlgparameter.h"
 #include "ui_DlgParameter.h"
 
 #include "abstractformeditor.h"

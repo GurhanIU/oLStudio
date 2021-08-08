@@ -109,7 +109,7 @@ QGroupBox::title {
            </font>
           </property>
           <property name="text">
-           <string>Sorgu:</string>
+           <string>Request:</string>
           </property>
          </widget>
         </item>
@@ -127,7 +127,7 @@ QGroupBox::title {
            </font>
           </property>
           <property name="text">
-           <string>Cevap:</string>
+           <string>Response:</string>
           </property>
          </widget>
         </item>

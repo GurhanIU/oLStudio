@@ -39,13 +39,13 @@ include(src/components/components.pri)
 SOURCES += \
     src/main.cpp \
     src/MainWindow.cpp \
-    src/forms/DlgAddress.cpp \
-    src/forms/DlgParameter.cpp \
+    src/forms/dlgaddress.cpp \
+    src/forms/dlgparameter.cpp \
     src/forms/dlgmenu.cpp \
     src/forms/dlgmodbusfunction.cpp \
     src/forms/dlgpageutil.cpp \
     src/forms/dlgpairmenupage.cpp \
-	src/forms/dlgpairregisterpage.cpp \
+    src/forms/dlgpairregisterpage.cpp \
     src/forms/settingsrtu.cpp \
     src/forms/settings.cpp \
     src/forms/about.cpp \
@@ -60,13 +60,13 @@ SOURCES += \
 HEADERS += \
     src/initdb.h \
     src/MainWindow.h \
-    src/forms/DlgAddress.h \
-    src/forms/DlgParameter.h \
+    src/forms/dlgaddress.h \
+    src/forms/dlgparameter.h \
     src/forms/dlgmenu.h \
     src/forms/dlgmodbusfunction.h \
     src/forms/dlgpageutil.h \
     src/forms/dlgpairmenupage.h \
-	src/forms/dlgpairregisterpage.h \
+    src/forms/dlgpairregisterpage.h \
     src/forms/settingsrtu.h \
     src/forms/settings.h \
     src/forms/about.h \
@@ -80,16 +80,16 @@ HEADERS += \
 
 FORMS += \
     src/MainWindow.ui \
+    src/forms/dlgaddress.ui \
+    src/forms/dlgparameter.ui \
     src/forms/settingsrtu.ui \
     src/forms/settings.ui \
-    src/forms/DlgAddress.ui \
-    src/forms/DlgParameter.ui \
     src/forms/dlgmenu.ui \
     src/forms/about.ui \
     src/forms/dlgmodbusfunction.ui \
     src/forms/dlgpageutil.ui \
     src/forms/dlgpairmenupage.ui \
-	src/forms/dlgpairregisterpage.ui \
+    src/forms/dlgpairregisterpage.ui \
     src/pages/WdgTest.ui
 
 RESOURCES += \

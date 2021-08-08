@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QLabel>
 #include <QMdiArea>
+#include <QVariant>
 
 #include "masterthread.h"
 #include "responsepacket.h"
@@ -24,57 +25,6 @@ class ModbusData;
 class ModbusDataEntries;
 
 class EDesignerFormEditorInterface;
-
-class MainWindowBase: public QMainWindow
-{
-    Q_DISABLE_COPY(MainWindowBase)
-    Q_OBJECT
-protected:
-    explicit MainWindowBase(QWidget *parent = 0, Qt::WindowFlags flags = Qt::Window);
-
-public:
-    enum CloseEventPolicy {
-        /* Always accept close events */
-        AcceptCloseEvents,
-        /* Emit a signal with the event, have it handled elsewhere */
-        EmitCloseEventSignal };
-
-    CloseEventPolicy closeEventPolicy() const { return m_policy; }
-    void setCloseEventPolicy(CloseEventPolicy pol) { m_policy = pol; }
-
-//    static QList<QToolBar *> createToolBars(const EDesignerActions *actions, bool singleToolBar);
-    static QString mainWindowTitle();
-
-    // Use the minor Qt version as settings versions to avoid conflicts
-    static int settingsVersion();
-
-signals:
-    void closeEventReceived(QCloseEvent *e);
-
-protected:
-    virtual void closeEvent(QCloseEvent *e);
-private:
-    CloseEventPolicy m_policy;
-};
-
-class DockedMdiArea : public QMdiArea
-{
-    Q_DISABLE_COPY(DockedMdiArea)
-    Q_OBJECT
-public:
-    explicit DockedMdiArea(const QString &extension, QWidget *parent = 0);
-
-signals:
-    void fileDropped(const QString &);
-
-protected:
-    bool event (QEvent *event);
-
-private:
-    QStringList uiFiles(const QMimeData *d) const;
-
-    const QString m_extension;
-};
 
 // ----------------- Eski
 class MainWindow : public QMainWindow
@@ -114,6 +64,7 @@ private:
     CloseEventPolicy m_policy;
 
     QString m_dbFile;
+    QString m_logFile;
 
     About *m_dlgAbout;
     SettingsRTU *m_dlgModbusRTU;
@@ -166,7 +117,7 @@ private slots:
 
     void slPageChanged(const QString &name, const int &id);
 
-    void slActualChanged(const QVariant &value);
+    void slActualChanged(QVariant value);
     void callCreateForm();
     void openCloseDevice();
 

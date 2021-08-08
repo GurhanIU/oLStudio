@@ -26,9 +26,9 @@
 #include "commsettings.h"
 #include "infobar.h"
 
-#include "forms/DlgAddress.h"
+#include "forms/dlgaddress.h"
 #include "forms/dlgmodbusfunction.h"
-#include "forms/DlgParameter.h"
+#include "forms/dlgparameter.h"
 #include "forms/dlgmenu.h"
 #include "forms/dlgpageutil.h"
 #include "forms/dlgpairmenupage.h"
@@ -44,127 +44,6 @@
 
 static int reqCount = 0;
 static int resCount = 0;
-
-// ---------------- MainWindowBase
-
-MainWindowBase::MainWindowBase(QWidget *parent, Qt::WindowFlags flags) :
-    QMainWindow(parent, flags),
-    m_policy(AcceptCloseEvents)
-{
-#ifndef Q_WS_MAC
-    setWindowIcon(windowIcon());
-#endif
-}
-
-void MainWindowBase::closeEvent(QCloseEvent *e)
-{
-    switch (m_policy) {
-    case AcceptCloseEvents:
-        QMainWindow::closeEvent(e);
-        break;
-      case EmitCloseEventSignal:
-        emit closeEventReceived(e);
-        break;
-    }
-}
-
-//QList<QToolBar *>  MainWindowBase::createToolBars(const EDesignerActions *actions, bool singleToolBar)
-//{
-//    // Note that whenever you want to add a new tool bar here, you also have to update the default
-//    // action groups added to the toolbar manager in the mainwindow constructor
-//    QList<QToolBar *> rc;
-//    if (singleToolBar)
-//    {
-//        //: Not currently used (main tool bar)
-//        QToolBar *main = createToolBar(tr("Main"), QLatin1String("mainToolBar"), actions->fileActions()->actions());
-//        addActionsToToolBar(actions->editActions()->actions(), main);
-//        addActionsToToolBar(actions->toolActions()->actions(), main);
-//        addActionsToToolBar(actions->formActions()->actions(), main);
-//        rc.push_back(main);
-//    } else {
-//        rc.push_back(createToolBar(tr("File"), QLatin1String("fileToolBar"), actions->fileActions()->actions()));
-//        rc.push_back(createToolBar(tr("Edit"), QLatin1String("editToolBar"),  actions->editActions()->actions()));
-//        rc.push_back(createToolBar(tr("Tools"), QLatin1String("toolsToolBar"), actions->toolActions()->actions()));
-//        rc.push_back(createToolBar(tr("Form"), QLatin1String("formToolBar"), actions->formActions()->actions()));
-//    }
-//    return rc;
-//}
-
-QString MainWindowBase::mainWindowTitle()
-{
-    return trUtf8("OnLab Configuration Suite");
-}
-
-// Use the minor Qt version as settings versions to avoid conflicts
-int MainWindowBase::settingsVersion()
-{
-    const int version = QT_VERSION;
-    return (version & 0x00FF00) >> 8;
-}
-
-// ----------------- DockedMdiArea
-static const char *uriListMimeFormatC = "text/uri-list";
-
-DockedMdiArea::DockedMdiArea(const QString &extension, QWidget *parent) :
-    QMdiArea(parent),
-    m_extension(extension)
-{
-    setAcceptDrops(true);
-    setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-}
-
-QStringList DockedMdiArea::uiFiles(const QMimeData *d) const
-{
-    // Extract dropped UI files from Mime data.
-    QStringList rc;
-    if (!d->hasFormat(QLatin1String(uriListMimeFormatC)))
-        return rc;
-    const QList<QUrl> urls = d->urls();
-    if (urls.empty())
-        return rc;
-    const QList<QUrl>::const_iterator cend = urls.constEnd();
-    for (QList<QUrl>::const_iterator it = urls.constBegin(); it != cend; ++it) {
-        const QString fileName = it->toLocalFile();
-        if (!fileName.isEmpty() && fileName.endsWith(m_extension))
-            rc.push_back(fileName);
-    }
-    return rc;
-}
-
-bool DockedMdiArea::event(QEvent *event)
-{
-    // Listen for desktop file manager drop and emit a signal once a file is
-    // dropped.
-    switch (event->type()) {
-    case QEvent::DragEnter: {
-        QDragEnterEvent *e = static_cast<QDragEnterEvent*>(event);
-        if (!uiFiles(e->mimeData()).empty())
-        {
-            e->acceptProposedAction();
-            return true;
-        }
-    }
-        break;
-    case QEvent::Drop: {
-        QDropEvent *e = static_cast<QDropEvent*>(event);
-        const QStringList files = uiFiles(e->mimeData());
-        const QStringList::const_iterator cend = files.constEnd();
-        for (QStringList::const_iterator it = files.constBegin(); it != cend; ++it)
-        {
-            emit fileDropped(*it);
-        }
-        e->acceptProposedAction();
-        return true;
-    }
-        break;
-    default:
-        break;
-    }
-    return QMdiArea::event(event);
-}
-
-// ----------------- Eski
 
 MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
     QMainWindow(parent),
@@ -204,13 +83,13 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
 
     m_thread = createMasterThread();
 
+    m_modbusEntries = new ModbusDataEntries(this);
+
     connect(m_thread, &MasterThread::errorOccurred, this, &MainWindow::threadErrorOccured);
     connect(m_thread, &MasterThread::stateChanged, this, &MainWindow::threadStateChanged);
     connect(m_thread, &MasterThread::finished, this, &MainWindow::threadFinished);
     connect(m_thread, &MasterThread::response, this, &MainWindow::showResponse);
     connect(m_thread, &MasterThread::request, this, &MainWindow::showRequest);
-
-    m_modbusEntries = new ModbusDataEntries(this);
 
     connect(m_modbusEntries, &ModbusDataEntries::sgProcessRange, this, &MainWindow::sgProcessRange);
     connect(m_modbusEntries, &ModbusDataEntries::sgProcessValue, this, &MainWindow::sgProcessValue);
@@ -237,7 +116,9 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
     connect(ui->actionSave_Session, SIGNAL(triggered(bool)), this, SLOT(saveSession()));
     connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(close()));
 
-    QTimer::singleShot(100, this, SLOT(callCreateForm())); // won't show anything if suppressed
+    openLogFile();
+
+    QTimer::singleShot(100, this, SLOT(callCreateForm())); // won't show anything if
 }
 
 MainWindow::~MainWindow()
@@ -316,11 +197,16 @@ void MainWindow::callCreateForm()
 
 void MainWindow::openLogFile()
 {
-    //Open log file
-//    QLOG_TRACE()<<  "Open log file";
+    m_logFile = QDir::currentPath() + "/db" + "/log.db";
 
-    QString arg = "file:///" + QCoreApplication::applicationDirPath() + "/log.txt";
-    QDesktopServices::openUrl(QUrl(arg));
+    QSqlError dbError = initDb(m_logFile);
+
+    if (dbError.isValid()) {
+        qDebug() << m_logFile << dbError.text() ;
+
+        QMessageBox::critical(this, "", tr("Log File is Corrupted!"));
+        return;
+    }
 }
 
 void MainWindow::showSettingsModbusRTU()
@@ -519,9 +405,10 @@ void MainWindow::collectRegisters()
                                                       QVariant(qry.value(vTypeIdx).toUInt(), (void*)&actual),
                                                       qry.value(rNameIdx).toString());
 
-//        if (entry) {
+        if (entry) {
 //            connect(entry, &ModbusData::valueChanged, this, &MainWindow::slActualChanged);
-//        }
+            connect(entry, &ModbusData::valueChanged, this, static_cast<void (MainWindow::*)(QVariant)>(&MainWindow::slActualChanged));
+        }
     }
 }
 
@@ -544,22 +431,50 @@ void MainWindow::updateStatusBar()
     msg += m_commSettings->stopBits() + ",";
     msg += m_commSettings->parity();
 
-    m_statusText->setText(msg);    
+    m_statusText->setText(msg);
 }
 
-void MainWindow::slActualChanged(const QVariant &value)
+QString getLastExecutedQuery(const QSqlQuery& query)
+{
+    QString str = query.lastQuery();
+    QMapIterator<QString, QVariant> it(query.boundValues());
+
+    it.toBack();
+
+    while (it.hasPrevious())
+    {
+        it.previous();
+        str.replace(it.key(),it.value().toString());
+    }
+    return str;
+}
+
+void MainWindow::slActualChanged(QVariant value)
 {
     ModbusData *modbusData = qobject_cast<ModbusData*>(sender());
 
     if (!modbusData)
         return;
 
-    QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
-    qry.prepare(QString("UPDATE PARAMETER SET ACTUAL_VALUE = %1 WHERE REGISTER_ID = %2")
-                  .arg(value.toString())
-                  .arg(modbusData->registerId()));
+    QSqlDatabase db = QSqlDatabase::database("log.db");
+
+    QSqlQuery qry = QSqlQuery(db);
+    qry.prepare("INSERT INTO LOG (ADDRESS, VALUE, TIMESTAMP) VALUES(:address, :value, :timestamp);");
+
+    qry.bindValue(":address", modbusData->address());
+    qry.bindValue(":timestamp", QDateTime::currentDateTime().toString("yyyy.MM.dd hh:mm:ss:zzz"));
+
+    if (modbusData->dataType() == QMetaType::SChar || modbusData->dataType() == QMetaType::Char)
+        qry.bindValue(":value", (qint8)value.toChar().unicode());// qDebug() << "AA" << value.type() << (qint8)value.toChar().unicode();
+    else if (modbusData->dataType() == QMetaType::UChar)
+        qry.bindValue(":value", (quint8)value.toChar().unicode()); // qDebug() << "BB" << value.type() << (quint8)value.toChar().unicode();
+    else
+        qry.bindValue(":value", value.toString());
+
+    qDebug() << getLastExecutedQuery(qry);
+
     if (!qry.exec())
-        qDebug() << qry.lastError() << qry.lastQuery();
+        qDebug() << qry.lastError() << getLastExecutedQuery(qry);
 }
 
 void MainWindow::threadErrorOccured(MasterThread::Error error)
@@ -632,6 +547,7 @@ void MainWindow::threadStateChanged(MasterThread::State state)
 
 void MainWindow::setControlsEnabled(bool enable)
 {
+    qDebug() << enable;
     ui->actionSerial_RTU->setEnabled(!enable);
     ui->actionLoad_Session->setEnabled(enable);
     ui->actionSave_Session->setEnabled(enable);
@@ -688,10 +604,11 @@ void MainWindow::showRequest(const QByteArray &data)
 void MainWindow::showResponse(const QByteArray &data)
 {
     ResponsePacket *packet = new ResponsePacket;
-//    connect(packet, &ResponsePacket::responseData, this, &MainWindow::slInsertData);
+
     connect(packet, &ResponsePacket::responseStatus, [this](const QString &status){
        m_lblResponseStatus->setText(tr("Status: %1").arg(status));
     });
+
     packet->setPacket(data);
     packet->deleteLater();
     m_lblResponseTraffic->setText(tr("Response: %1 #%2#").arg(++resCount).arg(QString(data.toHex(':').toUpper())));

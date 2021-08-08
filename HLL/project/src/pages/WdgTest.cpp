@@ -103,8 +103,7 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
                               WHERE  r.ID IN ( SELECT REGISTER_ID FROM PAGE_REGISTER WHERE PAGE_ID = %1) GROUP BY r.ID ORDER BY r.ADDRESS;").arg(id),
                              QSqlDatabase::database(m_core->dbFile()));
 
-    if(m_model->lastError().isValid())
-    {
+    if (m_model->lastError().isValid()) {
         QMessageBox::critical(this, tr("Unable to initialize Database"),
                                     tr("Error initializing database: %1").arg(m_model->lastError().text()));
         return;
@@ -138,8 +137,7 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
 
     char chk = (char)m_model->rowCount();
 
-    for(int modelIdx = 0; modelIdx < m_model->rowCount(); modelIdx++)
-    {
+    for(int modelIdx = 0; modelIdx < m_model->rowCount(); modelIdx++) {
         bool ok = false;
         QString pageCaption = m_model->record(modelIdx).value(rNameIdx).toString();
         int registerId = m_model->record(modelIdx).value(rIdIdx).toInt();
@@ -197,6 +195,8 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
 
         connect(entry, &ModbusData::valueChanged, lblActual, [lblActual](QVariant data) {
            lblActual->setText(data.toString());
+
+//           QDataStream out()
         });
 
         QLabel *lblUnit = new QLabel(groupBox);

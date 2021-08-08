@@ -164,7 +164,6 @@ void DlgPairRegisterPage::slUpdateRegisterModel(int pageId)
         QCheckBox *ckb = new QCheckBox(model->record(row).value(rNameIdx).toString(), this);
         ckb->setProperty("pageId", pageId);
         ckb->setProperty("regId", model->record(row).value(rIdIdx).toInt());
-        ckb->setProperty("immutable", model->record(row).value(stsIdx).toBool());
         ckb->setChecked(model->record(row).value(stsIdx).toBool());
 
         connect(ckb, &QCheckBox::stateChanged, [=](int state) {

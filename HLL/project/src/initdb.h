@@ -8,18 +8,10 @@
 QSqlError initDb(const QString &dbName )
 {
     QFileInfo fInfo(dbName);
-    qDebug() << fInfo.fileName();
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", fInfo.fileName());
-//    db.setConnectOptions("QSQLITE_USE_CIPHER=sqlcipher; SQLCIPHER_LEGACY=1");
-//    #ifdef QT_DEBUG
-    db.setDatabaseName(dbName);
-//    db.setDatabaseName(QString("%1/../../db/%2").arg(QApplication::applicationDirPath()).arg(dbName));
-//    #else
-//    db.setDatabaseName(QString("%1/db/%2").arg(QApplication::applicationDirPath()).arg(dbName));
-//    #endif
 
-//    db.setUserName("");
-//    db.setPassword("123456");
+    db.setDatabaseName(dbName);
+
     if (!db.open())
         return db.lastError();
 
