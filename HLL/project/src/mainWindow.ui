@@ -144,7 +144,7 @@
     <bool>false</bool>
    </property>
   </widget>
-  <widget class="QToolBar" name="topToolBar">
+  <widget class="QToolBar" name="leftTopToolBar">
    <property name="minimumSize">
     <size>
      <width>0</width>
@@ -159,6 +159,9 @@
    </property>
    <property name="windowTitle">
     <string>TopBar</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
    </property>
    <property name="toolButtonStyle">
     <enum>Qt::ToolButtonTextUnderIcon</enum>
@@ -175,15 +178,9 @@
    <addaction name="actionLoad_Session"/>
    <addaction name="actionSave_Session"/>
    <addaction name="separator"/>
-   <addaction name="actionConnect"/>
-   <addaction name="actionSerial_RTU"/>
-   <addaction name="separator"/>
    <addaction name="actionOpenLogFile"/>
-   <addaction name="separator"/>
-   <addaction name="actionAbout"/>
-   <addaction name="separator"/>
   </widget>
-  <widget class="QToolBar" name="leftToolBar">
+  <widget class="QToolBar" name="rightTopToolBar">
    <property name="minimumSize">
     <size>
      <width>0</width>
@@ -192,6 +189,12 @@
    </property>
    <property name="windowTitle">
     <string>LeftBar</string>
+   </property>
+   <property name="layoutDirection">
+    <enum>Qt::RightToLeft</enum>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
    </property>
    <property name="toolButtonStyle">
     <enum>Qt::ToolButtonTextUnderIcon</enum>
@@ -202,6 +205,10 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionAbout"/>
+   <addaction name="separator"/>
+   <addaction name="actionSerial_RTU"/>
+   <addaction name="actionConnect"/>
   </widget>
   <action name="actionExit">
    <property name="icon">

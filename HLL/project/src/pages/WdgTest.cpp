@@ -35,7 +35,7 @@ WdgTest::WdgTest(EDesignerFormEditorInterface *core, ModbusDataEntries *dataEntr
     ui->setupUi(this);
 
     ui->grpToolBox->hide();
-    ui->lblReguest->hide();
+    ui->lblRequest->hide();
     ui->lblResponse->hide();
     ui->tableView->hide();
     ui->scrollArea->hide();
@@ -85,7 +85,6 @@ void WdgTest::slModbusStateChanged(int state)
 
 void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
 {
-    m_requestData.clear();
     m_entryList.clear();
     ui->grpToolBox->setTitle(name);
 
@@ -130,13 +129,6 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
     verticalLayout->setContentsMargins(80, 0, 80, 0);
     verticalLayout->setSpacing(6);
 
-    m_requestData.append((char)0xAA);
-    m_requestData.append((char)0x01);
-    m_requestData.append((char)(m_model->rowCount()*5+1));
-    m_requestData.append((char)m_model->rowCount());
-
-    char chk = (char)m_model->rowCount();
-
     for(int modelIdx = 0; modelIdx < m_model->rowCount(); modelIdx++) {
         bool ok = false;
         QString pageCaption = m_model->record(modelIdx).value(rNameIdx).toString();
@@ -146,27 +138,10 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
         QVariant actualValue = m_model->record(modelIdx).value(rActualIdx);
 
         ModbusData *entry = m_dataEntries->entry(address);
-        m_entryList.append(entry);
-
-        const char a0 = (char)address;
-        const char a1 = (char)(address >> 8);
-        const char a2 = (char)(address >> 16);
-        const char a3 = (char)(address >> 24);
-
-        chk += a0;
-        chk += a1;
-        chk += a2;
-        chk += a3;
-
-        m_requestData.append(a0);
-        m_requestData.append(a1);
-        m_requestData.append(a2);
-        m_requestData.append(a3);
-
-        QMetaType t(entry->dataType());
-        m_requestData.append((char) t.sizeOf());
-
-        chk += (char) t.sizeOf();
+        if (entry)
+            m_entryList.append(entry);
+        else
+            continue;
 
         QGroupBox *groupBox = new QGroupBox(this);
         groupBox->setMinimumSize(QSize(0, 75));
@@ -195,8 +170,6 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
 
         connect(entry, &ModbusData::valueChanged, lblActual, [lblActual](QVariant data) {
            lblActual->setText(data.toString());
-
-//           QDataStream out()
         });
 
         QLabel *lblUnit = new QLabel(groupBox);
@@ -212,10 +185,9 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
         verticalLayout->addWidget(groupBox);
     }
 
-    m_requestData.append(chk);
-    m_requestData.append((char) 0x55);
+    QByteArray reqPacket = prepeareRequest(m_entryList);
 
-    ui->lblReguest->setText(tr("Request: #%1#").arg(QString(m_requestData.toHex(':').toUpper())));
+    ui->lblRequest->setText(tr("Request: #%1#").arg(QString(reqPacket.toHex(':').toUpper())));
 
     ui->tableView->viewport()->update();
     ui->tableView->setVisible(false);
@@ -231,12 +203,45 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
     ui->tableView->setCurrentIndex(m_model->index(0, 0));
 
     ui->grpToolBox->show();
-    ui->lblReguest->show();
+    ui->lblRequest->show();
     ui->lblResponse->show();
 //    #ifndef QT_DEBUG
 //    ui->tableView->hide();
 //    #endif
     ui->scrollArea->show();
+}
+
+QByteArray WdgTest::prepeareRequest(const ModbusDataEntries::EntryList &entryList)
+{
+    if (entryList.isEmpty())
+            return QByteArray();
+    QByteArray packet;
+    packet.append((char)0xAA);
+    packet.append((char)0x01);
+    packet.append((char)(entryList.count()*5 + 1)); // 5: Her veri icin 4byte adres bilgisi ve 1 adet boyut bilgisi; 1: toplam veri adedi
+    packet.append((char)entryList.count()); // toplam veri adedi
+
+    char chkSum = (char)entryList.count();
+
+    foreach (ModbusData *entry, entryList ) {
+        QMetaType t(entry->dataType());
+        packet.append((char)entry->address());
+        packet.append((char)(entry->address() >> 8));
+        packet.append((char)(entry->address() >> 16));
+        packet.append((char)(entry->address() >> 24));
+        packet.append((char)t.sizeOf());
+
+        chkSum += (char)entry->address();
+        chkSum += (char)(entry->address() >> 8);
+        chkSum += (char)(entry->address() >> 16);
+        chkSum += (char)(entry->address() >> 24);
+        chkSum += (char)t.sizeOf();
+    }
+
+    packet.append(chkSum);
+    packet.append((char) 0x55);
+
+    return packet;
 }
 
 void WdgTest::actualValueChanged(int value)
@@ -252,49 +257,35 @@ void WdgTest::actualValueChanged(QString value)
 }
 
 void WdgTest::on_btnStart_clicked()
-{
-    emit sgRequest(m_requestData);
+{    
+    emit sgRequest(prepeareRequest(m_entryList));
 }
 
 void WdgTest::on_btnStop_clicked()
 {
-    QByteArray data; // cihaz tarafinda haberlesmeyi acar
-    data.append((char) 0xAA);
-    data.append((char) 0x03);
-    data.append((char) 0x03);
-    data.append((char) 0x00);
-    data.append((char) 0x00);
-    data.append((char) 0x00);
-    data.append((char) 0x00);
-    data.append((char) 0x55);
+    static const QByteArray data = (QByteArray().append((char)0xAA).append((char)0x03)
+                                                .append((char)0x03).append((char)0x00)
+                                                .append((char)0x00).append((char)0x00)
+                                                .append((char)0x00).append((char)0x55)); // cihaz tarafinda haberlesmeyi acar
+
     emit sgRequest(data);
 }
 
 void WdgTest::slResponse(const QByteArray &response)
 {
-    ResponsePacket *packet = new ResponsePacket;
-    packet->setPacket(response);
+    ui->lblResponse->setText(tr("Response: #%1#").arg(QString(response.toHex(':').toUpper())));
 
-    if (packet->isValid()) {
-        ui->lblResponse->setText(tr("Response: #%1#").arg(QString(response.toHex(':').toUpper())));
+    if (response.at(3) == m_entryList.count()) {
 
-        if (response.at(3) == m_entryList.count()) {
-
-            int offset = 4;
-            foreach (ModbusData *entry, m_entryList) {
-                const int len = QMetaType(entry->dataType()).sizeOf();
-                const QByteArray ba = response.mid(offset, len);
-                entry->setData(entry->dataType(), (void*)ba.data());
-//                entry->data().convert(entry->dataType());
-                offset += len;
+        int offset = 4;
+        foreach (ModbusData *entry, m_entryList) {
+            const int len = QMetaType(entry->dataType()).sizeOf();
+            const QByteArray ba = response.mid(offset, len);
+            entry->setData(entry->dataType(), (void*)ba.data());
+            offset += len;
 //                qDebug() << entry->alias() << entry->data() << QString(ba.toHex(':').toUpper()) << len;
-            }
         }
-        else
-            ui->lblResponse->setText(tr("Response: Packet Size Incorrect!"));
     }
     else
-        ui->lblResponse->setText(tr("Response: ---")); //In Valid Packet
-
-    packet->deleteLater();
+        ui->lblResponse->setText(tr("Response: Packet Size Incorrect!"));
 }

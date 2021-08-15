@@ -64,14 +64,13 @@ private:
     ModbusDataEntries *m_dataEntries;
     ModbusDataEntries::EntryList m_entryList;
 
-    QByteArray m_requestData;
-
     int typeIdx, aliasIdx, deviceIdx, unitIdx;
     int registerIdx, registerTypeIdx;
     int m_selectedRowIdx = -1;
 
     bool m_dataChanged = false;
 
+    static QByteArray prepeareRequest(const ModbusDataEntries::EntryList &entryList);
 signals:
     void sgRequest(const QByteArray &data);
 };

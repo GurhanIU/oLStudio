@@ -13,12 +13,13 @@ ResponsePacket::ResponsePacket(const QByteArray &packet, QObject *parent) :
     m_packet(packet),
     m_valid(false)
 {
-    initPacket();
+//    initPacket();
 }
 
 ResponsePacket::~ResponsePacket()
 {
-//    qDebug() << Q_FUNC_INFO;
+    if ( parent()->inherits("ResponsePacket") )
+        qDebug() << this << parent();
 }
 
 QByteArray ResponsePacket::packet() const
@@ -65,8 +66,10 @@ void ResponsePacket::initPacket()
 
                 if (m_packet.length() > idxOfFirstSOP + dataPacket.length()) {
                     QByteArray newPacket = m_packet.mid(dataPacket.length());
-                    ResponsePacket *newResponse = new ResponsePacket(newPacket, parent());
-                    newResponse->deleteLater();
+                    ResponsePacket newResponse(newPacket, this);
+                    newResponse.initPacket();
+//                    newResponse->deleteLater();
+                    qDebug() << "yeni paket!";
                 }
                 paketBulundu = true;
             }
@@ -124,6 +127,9 @@ void ResponsePacket::initPacket()
         default:
             break;
     }
+
+    if (m_valid)
+        emit responsePacket(m_packet);
 }
 
 bool ResponsePacket::crcCalculation(int start, int stop, const uchar &packetCrc)

@@ -22,6 +22,9 @@ public:
     QList<EntryList *> collectSubEntries();
     QList<EntryList *> collectSubEntries(const EntryList &entries);
 
+    int size();
+    int count();
+
 public slots:
 
 private:

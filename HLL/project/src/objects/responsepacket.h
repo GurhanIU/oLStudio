@@ -48,6 +48,7 @@ public:
 
     QByteArray packet() const;
     void setPacket(const QByteArray &packet);
+    void initPacket();
 
     bool isValid() const;
 //    void setValid(bool valid);
@@ -55,14 +56,13 @@ public:
 signals:
     void responseStatus(const QString &status);
     void responseData(const QList<ushort>&);
+    void responsePacket(const QByteArray &packet);
     void aaaa();
 
 private:
     QByteArray m_packet;
 
     bool m_valid;
-
-    void initPacket();
 
     bool crcCalculation(int start, int stop, const uchar &packetCrc);
     void checkPacketStatus(const uchar &packetStatus);

@@ -96,7 +96,7 @@ QGroupBox::title {
          <number>5</number>
         </property>
         <item>
-         <widget class="QLabel" name="lblReguest">
+         <widget class="QLabel" name="lblRequest">
           <property name="maximumSize">
            <size>
             <width>16777215</width>

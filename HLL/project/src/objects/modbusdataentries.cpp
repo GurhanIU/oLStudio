@@ -98,3 +98,13 @@ QList<ModbusDataEntries::EntryList *> ModbusDataEntries::collectSubEntries(const
 
     return subEntries;
 }
+
+int ModbusDataEntries::size()
+{
+    return allEntries().size();
+}
+
+int ModbusDataEntries::count()
+{
+    return size();
+}

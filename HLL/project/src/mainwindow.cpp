@@ -54,6 +54,9 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
 {
     ui->setupUi(this);
 
+    ui->leftTopToolBar->setLayoutDirection(Qt::LeftToRight);
+    ui->rightTopToolBar->setLayoutDirection(Qt::RightToLeft);
+
     //UI - status
     m_statusInd = new QLabel;
     m_statusInd->setFixedSize( 16, 16 );
@@ -471,10 +474,10 @@ void MainWindow::slActualChanged(QVariant value)
     else
         qry.bindValue(":value", value.toString());
 
-    qDebug() << getLastExecutedQuery(qry);
+//    qDebug() << getLastExecutedQuery(qry);
 
-    if (!qry.exec())
-        qDebug() << qry.lastError() << getLastExecutedQuery(qry);
+//    if (!qry.exec())
+//        qDebug() << qry.lastError() << getLastExecutedQuery(qry);
 }
 
 void MainWindow::threadErrorOccured(MasterThread::Error error)
@@ -603,16 +606,21 @@ void MainWindow::showRequest(const QByteArray &data)
 
 void MainWindow::showResponse(const QByteArray &data)
 {
-    ResponsePacket *packet = new ResponsePacket;
+//    ResponsePacket *packet = new ResponsePacket();
+//    ResponsePacket *packet = new ResponsePacket(data, this);
+    ResponsePacket packet(data, this);
 
-    connect(packet, &ResponsePacket::responseStatus, [this](const QString &status){
+    connect(&packet, &ResponsePacket::responseStatus, [this](const QString &status){
        m_lblResponseStatus->setText(tr("Status: %1").arg(status));
     });
 
-    packet->setPacket(data);
-    packet->deleteLater();
+    connect(&packet, &ResponsePacket::responsePacket, this, &MainWindow::sgResponse);
+
+//    packet->setPacket(data);
+    packet.initPacket();
+//    packet.deleteLater();
     m_lblResponseTraffic->setText(tr("Response: %1 #%2#").arg(++resCount).arg(QString(data.toHex(':').toUpper())));
-    emit sgResponse(data);
+//    emit sgResponse(data);
 }
 
 void MainWindow::slRequest(const QByteArray &data)
