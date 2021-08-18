@@ -228,7 +228,7 @@ void MainWindow::showSettings()
 {
     //Show General Settings Dialog
     m_dlgSettings->modbus_connected = false; // m_modbus->isConnected();
-    if (m_dlgSettings->exec()==QDialog::Accepted) {
+    if (m_dlgSettings->exec() == QDialog::Accepted) {
 //        QLOG_TRACE()<<  "Settings changes accepted ";
 //        m_modbus->rawModel->setMaxNoOfLines(m_modbusCommSettings->maxNoOfLines().toInt());
 //        m_modbus->setTimeOut(m_modbusCommSettings->timeOut().toInt());
@@ -241,21 +241,10 @@ void MainWindow::showSettings()
     updateStatusBar();
 }
 
-void MainWindow::changedScanRate(int value)
-{
-    //Enable-Disable Time Interval
-//    QLOG_TRACE()<<  "ScanRate changed. Value = " << value;
-    m_commSettings->setScanRate(value);
-    m_commSettings->saveSettings();
-
-//    m_modbus->setScanRate(value);
-}
-
 void MainWindow::loadSession()
 {
     QString fName;
 
-//     QLOG_TRACE()<<  "load session";
      fName = QFileDialog::getOpenFileName(this,
                                           tr("Load Configuraion File"),
                                           "",
@@ -263,17 +252,8 @@ void MainWindow::loadSession()
     //check
      if (fName != ""){
          m_commSettings->loadSession(fName);
-         //Update UI
-//         ui->sbStartAddress->setMinimum(m_modbusCommSettings->baseAddr().toInt());
-//         ui->cmbBase->setCurrentIndex(m_modbusCommSettings->base());
-//         ui->cmbFunctionCode->setCurrentIndex(m_modbusCommSettings->functionCode());
-//         ui->cmbModbusMode->setCurrentIndex(m_modbusCommSettings->modbusMode());
-//         ui->sbSlaveID->setValue(m_modbusCommSettings->slaveID());
-//         ui->spInterval->setValue(m_modbusCommSettings->scanRate());
-//         ui->sbStartAddress->setValue(m_modbusCommSettings->startAddr());
-//         ui->sbNoOfRegs->setValue(m_modbusCommSettings->noOfRegs());
          updateStatusBar();
-//         refreshView();
+
          QMessageBox::information(this, "", tr("Load Configuraion File : ") + fName);
      }
      else
@@ -604,23 +584,22 @@ void MainWindow::showRequest(const QByteArray &data)
     m_lblRequestTraffic->setText(tr("Request: %1 #%2#").arg(++reqCount).arg(QString(data.toHex(':').toUpper())));
 }
 
-void MainWindow::showResponse(const QByteArray &data)
+void MainWindow::showResponse(const QByteArray &rawData)
 {
-//    ResponsePacket *packet = new ResponsePacket();
-//    ResponsePacket *packet = new ResponsePacket(data, this);
-    ResponsePacket packet(data, this);
+    QList<QByteArray> list = ResponsePacket::initRawData(rawData);
+    qDebug() << list;
 
-    connect(&packet, &ResponsePacket::responseStatus, [this](const QString &status){
-       m_lblResponseStatus->setText(tr("Status: %1").arg(status));
-    });
+//    ResponsePacket packet(rawData, this);
 
-    connect(&packet, &ResponsePacket::responsePacket, this, &MainWindow::sgResponse);
+//    connect(&packet, &ResponsePacket::responseStatus, [this](const QString &status){
+//       m_lblResponseStatus->setText(tr("Status: %1").arg(status));
+//    });
 
-//    packet->setPacket(data);
-    packet.initPacket();
-//    packet.deleteLater();
-    m_lblResponseTraffic->setText(tr("Response: %1 #%2#").arg(++resCount).arg(QString(data.toHex(':').toUpper())));
-//    emit sgResponse(data);
+//    connect(&packet, &ResponsePacket::responsePacket, this, &MainWindow::sgResponse);
+
+//    packet.init();
+
+//    m_lblResponseTraffic->setText(tr("Response: %1 #%2#").arg(++resCount).arg(QString(data.toHex(':').toUpper())));
 }
 
 void MainWindow::slRequest(const QByteArray &data)

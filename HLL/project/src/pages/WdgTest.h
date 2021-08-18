@@ -43,6 +43,8 @@ public:
     explicit WdgTest(EDesignerFormEditorInterface *core, ModbusDataEntries *dataEntries, QWidget *parent = nullptr);
     ~WdgTest();
 
+    static QByteArray prepeareRequest(const ModbusDataEntries::EntryList &entryList);
+
 public slots:
     void slModbusStateChanged(int state);
     void slUpdateModelByPageId(const QString &name, const int &id);
@@ -68,9 +70,7 @@ private:
     int registerIdx, registerTypeIdx;
     int m_selectedRowIdx = -1;
 
-    bool m_dataChanged = false;
-
-    static QByteArray prepeareRequest(const ModbusDataEntries::EntryList &entryList);
+    bool m_dataChanged = false;    
 signals:
     void sgRequest(const QByteArray &data);
 };

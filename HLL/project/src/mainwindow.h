@@ -96,7 +96,6 @@ private slots:
 
     void showSettings();
 
-    void changedScanRate(int value);
     void changedConnect(bool value);
 
     void openLogFile();
@@ -122,7 +121,7 @@ private slots:
     void openCloseDevice();
 
     void showRequest(const QByteArray &data);
-    void showResponse(const QByteArray &data);
+    void showResponse(const QByteArray &rawData);
 
 protected:
     virtual void closeEvent(QCloseEvent *e);

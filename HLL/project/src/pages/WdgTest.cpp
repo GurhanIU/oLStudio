@@ -217,7 +217,7 @@ QByteArray WdgTest::prepeareRequest(const ModbusDataEntries::EntryList &entryLis
             return QByteArray();
     QByteArray packet;
     packet.append((char)0xAA);
-    packet.append((char)0x01);
+    packet.append((char)FC_WATCH_CONF);
     packet.append((char)(entryList.count()*5 + 1)); // 5: Her veri icin 4byte adres bilgisi ve 1 adet boyut bilgisi; 1: toplam veri adedi
     packet.append((char)entryList.count()); // toplam veri adedi
 

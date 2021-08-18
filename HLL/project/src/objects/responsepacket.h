@@ -8,9 +8,9 @@ class ResponsePacket : public QObject
 {
     Q_OBJECT
 public:    
-    const char SOP = 0xAA;
-    const char EOP = 0x55;
-    const char RX_MAX_LEN = 255;
+    static const char SOP = 0xAA;
+    static const char EOP = 0x55;
+    static const char RX_MAX_LEN = 255;
 
     enum Address
     {
@@ -42,17 +42,16 @@ public:
     Q_ENUM(Values)
 
     explicit ResponsePacket(QObject *parent = nullptr);
-    ResponsePacket(const QByteArray &packet, QObject *parent = nullptr);
+    ResponsePacket(const QByteArray &rawData, QObject *parent = nullptr);
 
     ~ResponsePacket();
 
     QByteArray packet() const;
-    void setPacket(const QByteArray &packet);
-    void initPacket();
+    void setRawData(const QByteArray &rawData);
+    void initRawData();
 
-    bool isValid() const;
-//    void setValid(bool valid);
-
+    void init();
+    static QList<QByteArray> initRawData(const QByteArray &raw);
 signals:
     void responseStatus(const QString &status);
     void responseData(const QList<ushort>&);
@@ -60,12 +59,13 @@ signals:
     void aaaa();
 
 private:
-    QByteArray m_packet;
+    QByteArray m_rawData;
+    QList<QByteArray> m_list;
 
     bool m_valid;
 
-    bool crcCalculation(int start, int stop, const uchar &packetCrc);
     void checkPacketStatus(const uchar &packetStatus);
+    bool validatePacket(const QByteArray &packet);
 };
 
 #endif // RESPONSEPACKET_H

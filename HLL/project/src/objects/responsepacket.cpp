@@ -2,16 +2,14 @@
 #include <QDebug>
 
 ResponsePacket::ResponsePacket(QObject *parent) :
-    QObject(parent),
-    m_valid(false)
+    QObject(parent)
 {
 
 }
 
-ResponsePacket::ResponsePacket(const QByteArray &packet, QObject *parent) :
+ResponsePacket::ResponsePacket(const QByteArray &rawData, QObject *parent) :
     QObject(parent),
-    m_packet(packet),
-    m_valid(false)
+    m_rawData(rawData)
 {
 //    initPacket();
 }
@@ -24,89 +22,130 @@ ResponsePacket::~ResponsePacket()
 
 QByteArray ResponsePacket::packet() const
 {
-    return m_packet;
+    return m_rawData;
 }
 
-void ResponsePacket::setPacket(const QByteArray &packet)
+void ResponsePacket::setRawData(const QByteArray &rawData)
 {
-    m_packet = packet;
-    initPacket();
+    m_rawData = rawData;
+//    initRawData();
 }
 
-bool ResponsePacket::isValid() const
+void ResponsePacket::init()
 {
-    return m_valid;
+    m_list = initRawData(m_rawData);
+    if (m_list.count() > 1)
+        qDebug() << m_list;
+    foreach (const QByteArray &packet, m_list) {
+        validatePacket(packet);
+    }
 }
 
-void ResponsePacket::initPacket()
+QList<QByteArray> ResponsePacket::initRawData(const QByteArray &raw)
 {
-    if (m_packet.isEmpty() || m_packet.length() < 6 /*|| m_packet.length() > 260*/) {
-        qDebug() << "Paket uzunlugu hatali!";
-        return;
-    }  
+    QByteArray rawData = raw;
+    QList<QByteArray> list;
 
-    QByteArray dataPacket;
-    bool paketBulundu = false;
+    if (rawData.length() < 6) {
+        qDebug() << "Paket uzunlugu hatali!" << rawData;
+        return list;
+    }
+
+    bool cikis = false;
 
     do {
-        int idxOfFirstSOP = m_packet.indexOf(SOP); // ilk AA nin indeksi alinir.
-
-        if (idxOfFirstSOP == -1 || m_packet.length() <= idxOfFirstSOP +1) // Pakette AA bulunamadiysa cikilir. // Hamsi :)
-            return;
-
-        if (m_packet.at(idxOfFirstSOP +1) < 4) {
-            int dataLength = m_packet.at(idxOfFirstSOP + 2);
-            int estimatedPacketLen = idxOfFirstSOP + dataLength + 2 + 2 +1;
-
-            if (estimatedPacketLen > m_packet.length())
-                return;
-
-            if (m_packet.at(estimatedPacketLen - 1) == EOP) {
-                dataPacket = m_packet.mid(idxOfFirstSOP, estimatedPacketLen);
-
-                if (m_packet.length() > idxOfFirstSOP + dataPacket.length()) {
-                    QByteArray newPacket = m_packet.mid(dataPacket.length());
-                    ResponsePacket newResponse(newPacket, this);
-                    newResponse.initPacket();
-//                    newResponse->deleteLater();
-                    qDebug() << "yeni paket!";
-                }
-                paketBulundu = true;
-            }
-            else {
-                m_packet = m_packet.mid(1);
-            }
+        if (rawData.length() < 6) {
+            qDebug() << "Paket uzunlugu hatali-1!" << rawData;
+            cikis = true;
         }
         else {
-            m_packet = m_packet.mid(1);
+            const int idxOfFirstSOP = rawData.indexOf(SOP); // ilk AA nin indeksi alinir.
+
+            if (idxOfFirstSOP == -1) { // Pakette AA bulunamadiysa cikilir.
+                qDebug() << "Pakette [AA] yok!" << rawData;
+                cikis = true;
+            }
+            else {
+                if (idxOfFirstSOP > 0) // Bulunan ilk AA paketin ilk elemani degilse, AA nin indeksinden itibaren olan kismi m_packet olarak ata.
+                    rawData = rawData.mid(idxOfFirstSOP);
+
+                if (rawData.length() < 6) {
+                    qDebug() << "Paket uzunlugu hatali-2!";
+                    cikis = true;
+                }
+                else {
+                    if (rawData.at(ADR_FNC) > 0 && rawData.at(ADR_FNC) < 4) {
+                        int dataLength = rawData.at(ADR_LEN);
+                        int estimatedPacketLen = dataLength + 2 + 2 +1;
+
+                        if (rawData.length() < estimatedPacketLen) {// rawData nin uzunlugu beklenen paket uzunlugundan kisa ise.
+                            qDebug() << "Paket uzunlugu hatali-3!";
+                            cikis = true;
+                        }
+                        else {
+                            if (rawData.at(estimatedPacketLen - 1) == EOP) // beklenen paket sonu [55] ise [AA] ile baslayip [55] ile biten uygun bir paket bulundu demektir.
+                                list.append(rawData.mid(0, estimatedPacketLen));
+
+                            rawData = rawData.mid(estimatedPacketLen); // uygun paketin bulunup bulunmadigina bakilmaksizin, rawData beklenen paket boyutu kadar kaydirilir.
+
+                            if (rawData.isEmpty())
+                                cikis = true;
+                        }
+                    }
+                    else { // muhtemel olmasi beklenen paketin fonksiyon adresindeki deger aralik disinda
+                        rawData = rawData.mid(1);
+                    }
+                }
+            }
         }
 
-    } while (!paketBulundu);
+    } while (!cikis);
 
-    m_packet = dataPacket;
+    return list;
+}
 
-    const int ADR_EOP = m_packet.length() -1;
-    const int ADR_CRC = ADR_EOP -1;
+static bool checkPacketCrc(const QByteArray &packet)
+{
+    uchar crc = 0;
+    const int start = ResponsePacket::ADR_LEN +1;
+    const int stop  = ResponsePacket::ADR_LEN + packet.at(ResponsePacket::ADR_LEN);
+    const uchar CRC = (uchar)packet.at(packet.length() -2);
 
-    uchar len = m_packet.at(ADR_LEN);
+    for(int i = start;  i <= stop; i++) {
+        crc += packet.at(i);
+    }
 
-    if (!crcCalculation(ADR_LEN +1, ADR_LEN + len, (uchar)m_packet.at(ADR_CRC)))
-        return;
+    bool ret = crc == CRC ? true : false;
 
-    switch (m_packet.at(ADR_FNC)) {
+    if (!ret)
+        qDebug() << QString("CRC Error: Calculated is %1 and Received is %2. Packet: %3")
+                            .arg(crc, 0, 16)
+                            .arg(CRC, 0, 16)
+                            .arg(QString(packet.toHex(':').toUpper()));
+    return ret;
+}
+
+bool ResponsePacket::validatePacket(const QByteArray &packet)
+{
+    bool isValid = false;
+
+    if (!checkPacketCrc(packet))
+        return isValid;
+
+    switch (packet.at(ADR_FNC))
+    {
         case FC_WRITE_MEM:
         case FC_WATCH_CONF:
         case FC_CONNECT:
         {
             qDebug() << "XX";
-            const uchar pacStatus = (uchar)m_packet.at(ADR_LEN + 1);
+            const uchar pacStatus = (uchar)packet.at(ADR_LEN + 1);
             checkPacketStatus(pacStatus);
-        }
-            break;
+        } break;
 
         case FC_WATCH_VARS:
         {
-            m_valid = true;
+            isValid = true;
 //            qDebug() << "FC_WATCH_VARS";
 //            uchar dataCount = m_packet.at(ADR_LEN + 1);
 //            QList<ushort> listData;
@@ -121,33 +160,16 @@ void ResponsePacket::initPacket()
 
 //            emit responseData(listData);
 
-        }
-            break;
+        } break;
 
         default:
             break;
     }
 
-    if (m_valid)
-        emit responsePacket(m_packet);
-}
+    if (isValid)
+        emit responsePacket(packet);
 
-bool ResponsePacket::crcCalculation(int start, int stop, const uchar &packetCrc)
-{
-    uchar crc = 0;
-    for(int i = start;  i <= stop; i++) {
-        crc += m_packet.at(i);
-    }
-
-    if (crc != packetCrc) {
-        qDebug() << QString("CRC Error: Calculated is %1 and Received is %2. Packet: %3")
-                    .arg(crc, 0, 16)
-                    .arg(packetCrc, 0, 16)
-                    .arg(QString(m_packet.toHex(':').toUpper()));
-        return false;
-    }
-
-    return true;
+    return isValid;
 }
 
 void ResponsePacket::checkPacketStatus(const uchar &packetStatus)
