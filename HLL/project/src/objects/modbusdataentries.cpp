@@ -1,23 +1,25 @@
 #include "modbusdataentries.h"
 
-#include "ebusdata.h"
-#include "onbusmaster.h"
-#include "responsepacket.h"
+#include "modbusdata.h"
 
 #include <QMessageBox>
+#include <QModbusClient>
 
 #include <QDebug>
 
-ModbusDataEntries::ModbusDataEntries(OnBusMaster *master, QObject *parent) :
-    m_onbusMaster(master),
-    QObject(parent)
+ModbusDataEntries::ModbusDataEntries(QObject *parent) : QObject(parent)
 {
-    connect(m_onbusMaster, &OnBusMaster::response, this, &ModbusDataEntries::response);
+    init();
 }
 
-EBusData *ModbusDataEntries::entry(int address)
+void ModbusDataEntries::init()
 {
-    EBusData *entry = findChild<EBusData *>(QString::number(address));
+//    connect(this, &ModbusDataEntries::sgMessage, this, &ModbusDataEntries::slModbusMessage);
+}
+
+ModbusData *ModbusDataEntries::entry(int address)
+{
+    ModbusData *entry = findChild<ModbusData *>(QString::number(address));
 
     return entry;
 }
@@ -26,7 +28,7 @@ ModbusDataEntries::EntryList ModbusDataEntries::allEntries()
 {
     // Entry lerin sirali oldugu varsayiliyor.
     // Siralama algoritmasi isletilmesi gerekiyor.
-    return findChildren<EBusData *>();
+    return findChildren<ModbusData *>();
 }
 
 /**
@@ -37,14 +39,14 @@ ModbusDataEntries::EntryList ModbusDataEntries::allEntries()
  * @param alias
  * @return Parent object has not address return true, else return false
  */
-EBusData * ModbusDataEntries::addEntry(int registerId, int address, EData *data, int precision, const QString &alias)
+ModbusData * ModbusDataEntries::addEntry(int registerId, int address, QVariant data, const QString &alias)
 {
-    EBusData *entry;
+    ModbusData *entry;
     if (!hasEntry(address)) {
-        entry = new EBusData(registerId, address, data, precision, alias, this);
+        entry = new ModbusData(registerId, address, data, this);
         entry->setAlias(alias);
 
-        connect(entry, &EBusData::sgMessage, this, &ModbusDataEntries::sgMessage);
+        connect(entry, &ModbusData::sgMessage, this, &ModbusDataEntries::sgMessage);        
     }
     else
         entry = this->entry(address);
@@ -54,22 +56,17 @@ EBusData * ModbusDataEntries::addEntry(int registerId, int address, EData *data,
 
 bool ModbusDataEntries::hasEntry(int address)
 {
-    EBusData *entry = findChild<EBusData *>(QString::number(address));
+    ModbusData *entry = findChild<ModbusData *>(QString::number(address));
 
     return entry ? true : false;
 }
 
 void ModbusDataEntries::deleteEntry(int address)
 {
-    EBusData *e = entry(address);
+    ModbusData *e = entry(address);
 
     if (e)
         delete e;
-}
-
-void ModbusDataEntries::deleteAll()
-{
-    qDeleteAll(findChildren<EBusData *>());
 }
 
 QList<ModbusDataEntries::EntryList *> ModbusDataEntries::collectSubEntries()
@@ -87,9 +84,9 @@ QList<ModbusDataEntries::EntryList *> ModbusDataEntries::collectSubEntries(const
         subEntries.append(pList);
 
         for(int i=1; i < entries.count(); i++) {
-            EBusData *modbusData = entries.at(i);
-            EBusData *lastModbusData = pList->last();
-            int difference = modbusData->startAddress() - lastModbusData->startAddress();
+            ModbusData *modbusData = entries.at(i);
+            ModbusData *lastModbusData = pList->last();
+            int difference = modbusData->address() - lastModbusData->address();
 
             if (difference > 1) {
                 pList = new EntryList;
@@ -110,73 +107,4 @@ int ModbusDataEntries::size()
 int ModbusDataEntries::count()
 {
     return size();
-}
-
-QByteArray ModbusDataEntries::prepareRequest(const EntryList &entryList)
-{
-    if (entryList.isEmpty())
-            return QByteArray();
-    QByteArray packet;
-    packet.append((char)0xAA);
-    packet.append((char)FC_WATCH_CONF);
-    packet.append((char)(entryList.count()*5 + 1)); // 5: Her veri icin 4byte adres bilgisi ve 1 adet boyut bilgisi; 1: toplam veri adedi
-    packet.append((char)entryList.count()); // toplam veri adedi
-
-    char chkSum = (char)entryList.count();
-
-    foreach (EBusData *entry, entryList ) {
-        QMetaType t(entry->dataType());
-        packet.append((char)entry->startAddress());
-        packet.append((char)(entry->startAddress() >> 8));
-        packet.append((char)(entry->startAddress() >> 16));
-        packet.append((char)(entry->startAddress() >> 24));
-        packet.append((char)t.sizeOf());
-
-        chkSum += (char)entry->startAddress();
-        chkSum += (char)(entry->startAddress() >> 8);
-        chkSum += (char)(entry->startAddress() >> 16);
-        chkSum += (char)(entry->startAddress() >> 24);
-        chkSum += (char)t.sizeOf();
-    }
-
-    packet.append(chkSum);
-    packet.append((char) 0x55);
-
-    return packet;
-}
-
-void ModbusDataEntries::prepareRequest()
-{
-    m_request = prepareRequest(allEntries());
-}
-
-QByteArray ModbusDataEntries::requestPacket() const
-{
-    return m_request;
-}
-
-void ModbusDataEntries::openCloseRequest()
-{ // cihaz tarafinda haberlesmeyi acar
-    static const QByteArray data = (QByteArray().append((char)0xAA).append((char)0x03)
-                                                .append((char)0x03).append((char)0x00)
-                                                .append((char)0x00).append((char)0x00)
-                                                .append((char)0x00).append((char)0x55));
-
-    m_onbusMaster->transaction(data);
-}
-
-void ModbusDataEntries::sendRequest(const QByteArray &request)
-{
-    m_onbusMaster->transaction(request);
-}
-
-void ModbusDataEntries::response(const QByteArray &rawData)
-{
-    ResponsePacket packet(rawData, this);
-}
-
-void ModbusDataEntries::sendRequest()
-{
-    prepareRequest();
-    m_onbusMaster->transaction(m_request);
 }

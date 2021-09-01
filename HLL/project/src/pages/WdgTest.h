@@ -18,18 +18,34 @@ class EditableSqlModel;
 class EDesignerFormEditorInterface;
 class ModbusData;
 class ModbusDataEntries;
-class OnBusMaster;
 
 class WdgTest : public QWidget
 {
     Q_OBJECT
+
 public:
-    explicit WdgTest(EDesignerFormEditorInterface *core, OnBusMaster *onBusMaster, QWidget *parent = nullptr);
+
+    enum Address
+    {
+        ADR_SOP = 0,
+        ADR_FNC = 1,
+        ADR_LEN = 2,
+    };
+    Q_ENUM(Address)
+
+    enum Function
+    {
+        FC_WRITE_MEM,
+        FC_WATCH_CONF,
+        FC_WATCH_VARS,
+        FC_CONNECT
+    };
+    explicit WdgTest(EDesignerFormEditorInterface *core, ModbusDataEntries *dataEntries, QWidget *parent = nullptr);
     ~WdgTest();
 
 public slots:
     void slModbusStateChanged(int state);
-    void init(const QString &title, int id);
+    void slUpdateModelByPageId(const QString &name, const int &id);
 
     void slResponse(const QByteArray &response);
 
@@ -46,19 +62,15 @@ private:
     EditableSqlModel *m_model = nullptr;
 
     ModbusDataEntries *m_dataEntries;
+    ModbusDataEntries::EntryList m_entryList;
 
     int typeIdx, aliasIdx, deviceIdx, unitIdx;
     int registerIdx, registerTypeIdx;
     int m_selectedRowIdx = -1;
 
-    QString m_title;
-    int m_pageId;
-
     bool m_dataChanged = false;
 
-    void updatePage();
-    void initModel(int pageId);
-    void collectEntries();
+    static QByteArray prepeareRequest(const ModbusDataEntries::EntryList &entryList);
 signals:
     void sgRequest(const QByteArray &data);
 };

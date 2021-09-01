@@ -6,7 +6,7 @@
 #include <QMdiArea>
 #include <QVariant>
 
-#include "onbusmaster.h"
+#include "masterthread.h"
 #include "responsepacket.h"
 
 QT_BEGIN_NAMESPACE
@@ -56,6 +56,8 @@ signals:
 public slots:
     void threadFinished();
 
+    void slRequest(const QByteArray &data);
+
 private:
     Ui::MainWindow *ui;
     EDesignerFormEditorInterface *m_core;
@@ -71,34 +73,39 @@ private:
     MenuBox *m_menuBox;
 
     CommSettings *m_commSettings;
-
+    void updateStatusBar();
     QLabel *m_statusText;
     QLabel *m_statusInd;
     QLabel *m_lblRequestTraffic;
     QLabel *m_lblResponseTraffic;
     QLabel *m_lblResponseStatus;
 
-    OnBusMaster *m_onbusMaster;
-    OnBusMaster *createOnBusMaster();
+    ModbusDataEntries *m_modbusEntries;
+
+    MasterThread *m_thread;
+    MasterThread *createMasterThread();
+
+    void collectRegisters();
 
     void setControlsEnabled(bool enable);
-    void updateStatusBar();
+
 
 private slots:
-    void closeOnBusMaster();
+    void closeMasterThread();
     void showSettingsModbusRTU();
 
     void showSettings();
 
-    void toggleConnection(bool status);
+    void changedScanRate(int value);
+    void changedConnect(bool value);
 
     void openLogFile();
 
     void loadSession();
     void saveSession();
 
-    void threadErrorOccured(OnBusMaster::Error);
-    void threadStateChanged(OnBusMaster::State);
+    void threadErrorOccured(MasterThread::Error);
+    void threadStateChanged(MasterThread::State);
 
     void slShowAddress();
     void slShowParameter();
@@ -108,8 +115,14 @@ private slots:
     void slShowPairMenuPage();
     void slShowPairRegisterPage();
 
+    void slPageChanged(const QString &name, const int &id);
+
     void slActualChanged(QVariant value);
     void callCreateForm();
+    void openCloseDevice();
+
+    void showRequest(const QByteArray &data);
+    void showResponse(const QByteArray &data);
 
 protected:
     virtual void closeEvent(QCloseEvent *e);

@@ -26,7 +26,7 @@ ModbusData::ModbusData(int registerId, int address, QVariant data, QObject *pare
 
 ModbusData::~ModbusData()
 {
-    qDebug().noquote() << m_alias << m_address << "Siliniyor";
+//    qDebug() << m_alias << m_address << "Siliniyor";
 }
 
 void ModbusData::setAlias(const QString &alias)

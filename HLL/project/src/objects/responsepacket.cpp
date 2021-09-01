@@ -1,186 +1,112 @@
 #include "responsepacket.h"
 #include <QDebug>
 
-QByteArray ResponsePacket::m_rawData;
-bool ResponsePacket::m_valid;
-
 ResponsePacket::ResponsePacket(QObject *parent) :
-    QObject(parent)
-{
-
-}
-
-ResponsePacket::ResponsePacket(const QByteArray &request, const QByteArray &response, QObject *parent) :
     QObject(parent),
-    m_request(request),
-    m_response(response)
+    m_valid(false)
 {
-    m_valid = validatePacket(response);
 
 }
 
-ResponsePacket::ResponsePacket(const QByteArray &rawData, QObject *parent) :
-    QObject(parent)
-{    
-    setRawData(rawData);
+ResponsePacket::ResponsePacket(const QByteArray &packet, QObject *parent) :
+    QObject(parent),
+    m_packet(packet),
+    m_valid(false)
+{
 //    initPacket();
 }
 
 ResponsePacket::~ResponsePacket()
 {
-//    if (parent()->inherits("ResponsePacket"))
-//        qDebug() << this << parent();
+    if ( parent()->inherits("ResponsePacket") )
+        qDebug() << this << parent();
 }
 
 QByteArray ResponsePacket::packet() const
 {
-    return m_rawData;
+    return m_packet;
 }
 
-void ResponsePacket::setRawData(const QByteArray &rawData)
-{   
-    m_rawData.append(rawData);
-    //    initRawData();
-}
-
-void ResponsePacket::clearRawData()
+void ResponsePacket::setPacket(const QByteArray &packet)
 {
-    m_rawData.clear();
+    m_packet = packet;
+    initPacket();
 }
 
-void ResponsePacket::init()
-{
-    m_list = initRawData(m_rawData);
-    if (m_list.count() > 1)
-        qDebug() << m_list;
-    foreach (const QByteArray &packet, m_list) {
-        validatePacket(packet);
-    }
-}
-
-QList<QByteArray> ResponsePacket::initRawData(const QByteArray &raw)
-{
-    QByteArray rawData = raw;
-    QList<QByteArray> list;
-
-    if (rawData.length() < 6) {
-        qDebug() << "Paket uzunlugu yetersiz!" << rawData;
-        return list;
-    }
-
-    bool cikis = false;
-
-    do {
-        if (rawData.length() < 6) {
-            qDebug() << "Paket uzunlugu hatali-1!" << rawData;
-            cikis = true;
-        }
-        else {
-            const int idxOfFirstSOP = rawData.indexOf(SOP); // ilk AA nin indeksi alinir.
-
-            if (idxOfFirstSOP == -1) { // Pakette AA bulunamadiysa cikilir.
-                qDebug() << "Pakette [AA] yok!" << rawData;
-                cikis = true;
-            }
-            else {
-                if (idxOfFirstSOP > 0) // Bulunan ilk AA paketin ilk elemani degilse, AA nin indeksinden itibaren olan kismi m_packet olarak ata.
-                    rawData = rawData.mid(idxOfFirstSOP);
-
-                if (rawData.length() < 6) {
-                    qDebug() << "Paket uzunlugu hatali-2!";
-                    cikis = true;
-                }
-                else {
-                    if (rawData.at(ADR_FNC) > 0 && rawData.at(ADR_FNC) < 4) {
-                        int dataLength = rawData.at(ADR_LEN);
-                        int estimatedPacketLen = dataLength + 2 + 2 +1;
-
-                        if (rawData.length() < estimatedPacketLen) {// rawData nin uzunlugu beklenen paket uzunlugundan kisa ise.
-                            qDebug() << "Paket uzunlugu hatali-3!";
-                            cikis = true;
-                        }
-                        else {
-                            if (rawData.at(estimatedPacketLen - 1) == EOP) // beklenen paket sonu [55] ise [AA] ile baslayip [55] ile biten uygun bir paket bulundu demektir.
-                                list.append(rawData.mid(0, estimatedPacketLen));
-
-                            rawData = rawData.mid(estimatedPacketLen); // uygun paketin bulunup bulunmadigina bakilmaksizin, rawData beklenen paket boyutu kadar kaydirilir.
-
-                            if (rawData.isEmpty())
-                                cikis = true;
-                        }
-                    }
-                    else { // muhtemel olmasi beklenen paketin fonksiyon adresindeki deger aralik disinda
-                        rawData = rawData.mid(1);
-                    }
-                }
-            }
-        }
-
-    } while (!cikis);
-
-    return list;
-}
-
-bool ResponsePacket::isValid()
+bool ResponsePacket::isValid() const
 {
     return m_valid;
 }
 
-const QByteArray &ResponsePacket::request() const
+void ResponsePacket::initPacket()
 {
-    return m_request;
-}
+    if (m_packet.isEmpty() || m_packet.length() < 6 /*|| m_packet.length() > 260*/) {
+        qDebug() << "Paket uzunlugu hatali!";
+        return;
+    }  
 
-const QByteArray &ResponsePacket::response() const
-{
-    return m_response;
-}
+    QByteArray dataPacket;
+    bool paketBulundu = false;
 
-const QString &ResponsePacket::status() const
-{
-    return m_status;
-}
+    do {
+        int idxOfFirstSOP = m_packet.indexOf(SOP); // ilk AA nin indeksi alinir.
 
-static bool checkPacketCrc(const QByteArray &packet)
-{
-    uchar crc = 0;
-    const int start = ResponsePacket::ADR_LEN +1;
-    const int stop  = ResponsePacket::ADR_LEN + packet.at(ResponsePacket::ADR_LEN);
-    const uchar CRC = (uchar)packet.at(packet.length() -2);
+        if (idxOfFirstSOP == -1 || m_packet.length() <= idxOfFirstSOP +1) // Pakette AA bulunamadiysa cikilir. // Hamsi :)
+            return;
 
-    for(int i = start;  i <= stop; i++) {
-        crc += packet.at(i);
-    }
+        if (m_packet.at(idxOfFirstSOP +1) < 4) {
+            int dataLength = m_packet.at(idxOfFirstSOP + 2);
+            int estimatedPacketLen = idxOfFirstSOP + dataLength + 2 + 2 +1;
 
-    bool ret = crc == CRC ? true : false;
+            if (estimatedPacketLen > m_packet.length())
+                return;
 
-    if (!ret)
-        qDebug() << QString("CRC Error: Calculated is %1 and Received is %2. Packet: %3")
-                            .arg(crc, 0, 16)
-                            .arg(CRC, 0, 16)
-                            .arg(QString(packet.toHex(':').toUpper()));
-    return ret;
-}
+            if (m_packet.at(estimatedPacketLen - 1) == EOP) {
+                dataPacket = m_packet.mid(idxOfFirstSOP, estimatedPacketLen);
 
-bool ResponsePacket::validatePacket(const QByteArray &response)
-{
-    bool valid = false;
+                if (m_packet.length() > idxOfFirstSOP + dataPacket.length()) {
+                    QByteArray newPacket = m_packet.mid(dataPacket.length());
+                    ResponsePacket newResponse(newPacket, this);
+                    newResponse.initPacket();
+//                    newResponse->deleteLater();
+                    qDebug() << "yeni paket!";
+                }
+                paketBulundu = true;
+            }
+            else {
+                m_packet = m_packet.mid(1);
+            }
+        }
+        else {
+            m_packet = m_packet.mid(1);
+        }
 
-    if (!checkPacketCrc(response))
-        return valid;
+    } while (!paketBulundu);
 
-    switch (response.at(ADR_FNC))
-    {
+    m_packet = dataPacket;
+
+    const int ADR_EOP = m_packet.length() -1;
+    const int ADR_CRC = ADR_EOP -1;
+
+    uchar len = m_packet.at(ADR_LEN);
+
+    if (!crcCalculation(ADR_LEN +1, ADR_LEN + len, (uchar)m_packet.at(ADR_CRC)))
+        return;
+
+    switch (m_packet.at(ADR_FNC)) {
         case FC_WRITE_MEM:
         case FC_WATCH_CONF:
-        case FC_CONNECT: {
-            const uchar pacStatus = (uchar)response.at(ADR_LEN + 1);
-            if (checkPacketStatus(pacStatus) == Status::RESP_OK)
-                valid = true;
-        } break;
+        case FC_CONNECT:
+        {
+            qDebug() << "XX";
+            const uchar pacStatus = (uchar)m_packet.at(ADR_LEN + 1);
+            checkPacketStatus(pacStatus);
+        }
+            break;
 
-        case FC_WATCH_VARS: {
-            valid = true;
+        case FC_WATCH_VARS:
+        {
+            m_valid = true;
 //            qDebug() << "FC_WATCH_VARS";
 //            uchar dataCount = m_packet.at(ADR_LEN + 1);
 //            QList<ushort> listData;
@@ -195,53 +121,62 @@ bool ResponsePacket::validatePacket(const QByteArray &response)
 
 //            emit responseData(listData);
 
-        } break;
+        }
+            break;
 
         default:
             break;
     }
 
-//    if (valid)
-//        emit responsePacket(response);
-
-    return valid;
+    if (m_valid)
+        emit responsePacket(m_packet);
 }
 
-ResponsePacket::Status ResponsePacket::checkPacketStatus(const uchar &packetStatus)
+bool ResponsePacket::crcCalculation(int start, int stop, const uchar &packetCrc)
+{
+    uchar crc = 0;
+    for(int i = start;  i <= stop; i++) {
+        crc += m_packet.at(i);
+    }
+
+    if (crc != packetCrc) {
+        qDebug() << QString("CRC Error: Calculated is %1 and Received is %2. Packet: %3")
+                    .arg(crc, 0, 16)
+                    .arg(packetCrc, 0, 16)
+                    .arg(QString(m_packet.toHex(':').toUpper()));
+        return false;
+    }
+
+    return true;
+}
+
+void ResponsePacket::checkPacketStatus(const uchar &packetStatus)
 {
     switch (packetStatus) {
     case PCK_NOT_RDY:
-        m_status = QString("PCK_NOT_RDY");
-        emit responseStatus(m_status);
-        return PCK_NOT_RDY;
+        emit responseStatus(QString("PCK_NOT_RDY"));
+        break;
     case PCK_READY:
-        m_status = QString("PCK_READY");
-        emit responseStatus(m_status);
-        return PCK_READY;
+        emit responseStatus(QString("PCK_READY"));
+        break;
     case RESP_OK:
-        m_status = QString("RESP_OK");
-        emit responseStatus(m_status);
-        return RESP_OK;
+        emit responseStatus(QString("RESP_OK"));
+        break;
     case PCK_INV_ID:
-        m_status = QString("PCK_INV_ID");
-        emit responseStatus(m_status);
-        return PCK_INV_ID;
+        emit responseStatus(QString("PCK_INV_ID"));
+        break;
     case PCK_CHK_ERR:
-        m_status = QString("PCK_CHK_ERR");
-        emit responseStatus(m_status);
-        return PCK_CHK_ERR;
+        emit responseStatus(QString("PCK_CHK_ERR"));
+        break;
     case PCK_OVERFLOW:
-        m_status = QString("PCK_OVERFLOW");
-        emit responseStatus(m_status);
-        return PCK_OVERFLOW;
+        emit responseStatus(QString("PCK_OVERFLOW"));
+        break;
     case PCK_INV_EOP:
-        m_status = QString("PCK_INV_EOP");
-        emit responseStatus(m_status);
-        return PCK_INV_EOP;
+        emit responseStatus(QString("PCK_INV_EOP"));
+        break;
     default:
-        m_status = QString("UNKNOWN_STATUS");
-        emit responseStatus(m_status);
-        return PCK_UNKNOWN;
+        emit responseStatus(QString("UNKNOWN_STATUS"));
+        break;
     }
 }
 
