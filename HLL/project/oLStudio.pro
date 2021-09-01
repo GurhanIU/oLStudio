@@ -50,10 +50,12 @@ SOURCES += \
     src/forms/settings.cpp \
     src/forms/about.cpp \
     src/objects/commsettings.cpp \
+    src/objects/ebusdata.cpp \
+    src/objects/ebusdataentries.cpp \
     src/objects/editablesqlmodel.cpp \
     src/objects/modbusdata.cpp \
     src/objects/modbusdataentries.cpp \
-    src/objects/masterthread.cpp \
+    src/objects/onbusmaster.cpp \
     src/objects/responsepacket.cpp \
     src/pages/WdgTest.cpp
 
@@ -71,10 +73,13 @@ HEADERS += \
     src/forms/settings.h \
     src/forms/about.h \
     src/objects/commsettings.h \
+    src/objects/ebusdata.h \
+    src/objects/ebusdataentries.h \
+    src/objects/edata.h \
     src/objects/editablesqlmodel.h \
     src/objects/modbusdata.h \
     src/objects/modbusdataentries.h \
-    src/objects/masterthread.h \
+    src/objects/onbusmaster.h \
     src/objects/responsepacket.h \
     src/pages/WdgTest.h
 

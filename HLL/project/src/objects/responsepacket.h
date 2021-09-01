@@ -8,9 +8,9 @@ class ResponsePacket : public QObject
 {
     Q_OBJECT
 public:    
-    const char SOP = 0xAA;
-    const char EOP = 0x55;
-    const char RX_MAX_LEN = 255;
+    static const char SOP = 0xAA;
+    static const char EOP = 0x55;
+    static const char RX_MAX_LEN = 255;
 
     enum Address
     {
@@ -29,7 +29,7 @@ public:
     };
     Q_ENUM(Function)
 
-    enum Values
+    enum Status
     {
         PCK_NOT_RDY,
         PCK_READY,
@@ -38,34 +38,47 @@ public:
         PCK_CHK_ERR,
         PCK_OVERFLOW,
         PCK_INV_EOP,
+        PCK_UNKNOWN,
     };
-    Q_ENUM(Values)
+    Q_ENUM(Status)
 
     explicit ResponsePacket(QObject *parent = nullptr);
-    ResponsePacket(const QByteArray &packet, QObject *parent = nullptr);
+    explicit ResponsePacket(const QByteArray &request,  const QByteArray &response, QObject *parent = nullptr);
+    ResponsePacket(const QByteArray &rawData, QObject *parent = nullptr);
 
     ~ResponsePacket();
 
     QByteArray packet() const;
-    void setPacket(const QByteArray &packet);
-    void initPacket();
+    void setRawData(const QByteArray &rawData);
+    void clearRawData();
+    void initRawData();
 
-    bool isValid() const;
-//    void setValid(bool valid);
+    void init();
+    static QList<QByteArray> initRawData(const QByteArray &raw);
+
+    static bool isValid();
+
+    const QByteArray &request() const;
+    const QByteArray &response() const;
+
+    const QString &status() const;
 
 signals:
     void responseStatus(const QString &status);
     void responseData(const QList<ushort>&);
     void responsePacket(const QByteArray &packet);
-    void aaaa();
 
 private:
-    QByteArray m_packet;
+    static QByteArray m_rawData;
+    QByteArray m_request;
+    QByteArray m_response;
+    QList<QByteArray> m_list;
+    QString m_status;
 
-    bool m_valid;
+    static bool m_valid;
 
-    bool crcCalculation(int start, int stop, const uchar &packetCrc);
-    void checkPacketStatus(const uchar &packetStatus);
+    ResponsePacket::Status checkPacketStatus(const uchar &packetStatus);
+    bool validatePacket(const QByteArray &response);
 };
 
 #endif // RESPONSEPACKET_H
