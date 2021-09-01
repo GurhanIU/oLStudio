@@ -4,6 +4,8 @@
 #include "abstractformeditor.h"
 #include "widgetfactory_p.h"
 #include "objects/editablesqlmodel.h"
+#include "objects/edata.h"
+#include "objects/ebusdata.h"
 #include "objects/modbusdata.h"
 #include "objects/modbusdataentries.h"
 
@@ -26,10 +28,9 @@
 
 #include <QDebug>
 
-WdgTest::WdgTest(EDesignerFormEditorInterface *core, ModbusDataEntries *dataEntries, QWidget *parent) :
+WdgTest::WdgTest(EDesignerFormEditorInterface *core, OnBusMaster *onBusMaster, QWidget *parent) :
     QWidget(parent),
     m_core(core),
-    m_dataEntries(dataEntries),
     ui(new Ui::WdgTest)
 {
     ui->setupUi(this);
@@ -52,10 +53,13 @@ WdgTest::WdgTest(EDesignerFormEditorInterface *core, ModbusDataEntries *dataEntr
     ui->tableView->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
     ui->tableView->horizontalHeader()->setSectionsMovable(true);
     ui->tableView->resizeColumnsToContents();
+
+    m_dataEntries = new ModbusDataEntries(onBusMaster, this);
 }
 
 WdgTest::~WdgTest()
 {
+    qDebug() << "Siliniyor:" << this;
     delete ui;
 }
 
@@ -63,33 +67,22 @@ void WdgTest::slModbusStateChanged(int state)
 {
     bool connected = (state == QModbusDevice::ConnectedState);
 
-    switch (state) {
-    case QModbusDevice::UnconnectedState:
-
-        break;
-    case QModbusDevice::ConnectingState:
-
-        break;
-    case QModbusDevice::ConnectedState:
-
-        break;
-    case QModbusDevice::ClosingState:
-
-        break;
-    }
-
-//    ui->grpToolBox->setVisible(connected);
     ui->btnStart->setEnabled(connected);
     ui->btnStop->setEnabled(connected);
 }
 
-void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
+void WdgTest::init(const QString &title, int id)
 {
-    m_entryList.clear();
-    ui->grpToolBox->setTitle(name);
+    m_title = title;
+    m_pageId = id;
 
-    qDeleteAll(ui->scrollAreaWidgetContents->children());
+    initModel(id);
+    collectEntries();
+    updatePage();
+}
 
+void WdgTest::initModel(int pageId)
+{
     if (m_model)
         delete m_model;
 
@@ -99,14 +92,19 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
                               LEFT JOIN VARIANT_TYPE as vt ON r.VARIANT_ID = vt.ID \
                               LEFT JOIN MODBUS_FUNCTION as mf ON r.MODBUS_FUNC_ID = mf.ID \
                               LEFT JOIN UNITS as u ON  r.UNIT_ID = u.ID \
-                              WHERE  r.ID IN ( SELECT REGISTER_ID FROM PAGE_REGISTER WHERE PAGE_ID = %1) GROUP BY r.ID ORDER BY r.ADDRESS;").arg(id),
+                              WHERE  r.ID IN ( SELECT REGISTER_ID FROM PAGE_REGISTER WHERE PAGE_ID = %1) GROUP BY r.ID ORDER BY r.ADDRESS;").arg(pageId),
                              QSqlDatabase::database(m_core->dbFile()));
 
     if (m_model->lastError().isValid()) {
         QMessageBox::critical(this, tr("Unable to initialize Database"),
                                     tr("Error initializing database: %1").arg(m_model->lastError().text()));
-        return;
     }
+}
+
+void WdgTest::collectEntries()
+{
+    if (m_dataEntries)
+        m_dataEntries->deleteAll();
 
     int rIdIdx = m_model->record().indexOf("rID");
     int rNameIdx = m_model->record().indexOf("NAME");
@@ -116,6 +114,31 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
     int uUnitIdx = m_model->record().indexOf("UNIT");
     int vTypeIdx = m_model->record().indexOf("VTYPE");
     int vNameIdx = m_model->record().indexOf("DESCRIPTION");
+
+    for(int modelIdx = 0; modelIdx < m_model->rowCount(); modelIdx++) {
+        bool ok = false;
+        const uint actual = m_model->record(modelIdx).value(rActualIdx).toInt();
+        QString name = m_model->record(modelIdx).value(rNameIdx).toString();
+        int registerId = m_model->record(modelIdx).value(rIdIdx).toInt();
+        uint address = m_model->record(modelIdx).value(rAddressIdx).toString().toUInt(&ok, 16);
+        int precision = m_model->record(modelIdx).value(rPrecisionIdx).toInt();
+        QVariant actualValue = m_model->record(modelIdx).value(rActualIdx);
+
+        const QMetaType::Type type = (QMetaType::Type)m_model->record(modelIdx).value(vTypeIdx).toUInt();
+        QVariant value = m_model->record(modelIdx).value(vTypeIdx);
+
+        EData *data = EDataUtil::create(type, value);
+
+        if (data)
+            m_dataEntries->addEntry(registerId, address, data, precision, name);
+    }
+}
+
+void WdgTest::updatePage()
+{
+    ui->grpToolBox->setTitle(m_title);
+
+    qDeleteAll(ui->scrollAreaWidgetContents->children());
 
     ui->tableView->setModel(m_model);
 //    ui->tableView->setColumnHidden(objectTypeNameIdx, true);
@@ -129,24 +152,11 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
     verticalLayout->setContentsMargins(80, 0, 80, 0);
     verticalLayout->setSpacing(6);
 
-    for(int modelIdx = 0; modelIdx < m_model->rowCount(); modelIdx++) {
-        bool ok = false;
-        QString pageCaption = m_model->record(modelIdx).value(rNameIdx).toString();
-        int registerId = m_model->record(modelIdx).value(rIdIdx).toInt();
-        uint address = m_model->record(modelIdx).value(rAddressIdx).toString().toUInt(&ok, 16);
-        int precision = m_model->record(modelIdx).value(rPrecisionIdx).toInt();
-        QVariant actualValue = m_model->record(modelIdx).value(rActualIdx);
-
-        ModbusData *entry = m_dataEntries->entry(address);
-        if (entry)
-            m_entryList.append(entry);
-        else
-            continue;
-
+    foreach (EBusData *entry, m_dataEntries->allEntries()) {
         QGroupBox *groupBox = new QGroupBox(this);
         groupBox->setMinimumSize(QSize(0, 75));
         groupBox->setMaximumSize(QSize(16777215, 75));
-        groupBox->setTitle(pageCaption);
+        groupBox->setTitle(entry->alias());
         groupBox->setFont(QFont("Tahoma", 8, 70));
 
         QHBoxLayout *hLytGroup = new QHBoxLayout(groupBox);
@@ -166,15 +176,15 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
 
         QLabel *lblActual = qobject_cast<QLabel*>(w);
         lblActual->setMinimumWidth(50);
-        lblActual->setText(actualValue.toString());
+        lblActual->setText("---");
 
-        connect(entry, &ModbusData::valueChanged, lblActual, [lblActual](QVariant data) {
-           lblActual->setText(data.toString());
+        connect(entry, &EBusData::dataChanged, lblActual, [lblActual](EData *data) {
+           lblActual->setText(data->toString());
         });
 
         QLabel *lblUnit = new QLabel(groupBox);
         lblUnit->setMinimumSize(QSize(50, 0));
-        lblUnit->setText(m_model->record(modelIdx).value(uUnitIdx).toString());
+        lblUnit->setText("-");
         lblUnit->setStyleSheet("QLabel{border: 1px solid transparent;}");
         lblUnit->setFont(QFont("Tahoma", 9));
 
@@ -185,9 +195,8 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
         verticalLayout->addWidget(groupBox);
     }
 
-    QByteArray reqPacket = prepeareRequest(m_entryList);
-
-    ui->lblRequest->setText(tr("Request: #%1#").arg(QString(reqPacket.toHex(':').toUpper())));
+    m_dataEntries->prepareRequest();
+    ui->lblRequest->setText(tr("Request: #%1#").arg(QString(m_dataEntries->requestPacket().toHex(':').toUpper())));
 
     ui->tableView->viewport()->update();
     ui->tableView->setVisible(false);
@@ -199,49 +208,13 @@ void WdgTest::slUpdateModelByPageId(const QString &name, const int &id)
     ui->tableView->resizeRowsToContents();
     ui->tableView->viewport()->setGeometry(vporig);
     ui->tableView->setVisible(true);
-    ui->tableView->setColumnWidth(rNameIdx, 300);
+//    ui->tableView->setColumnWidth(0, 300);
     ui->tableView->setCurrentIndex(m_model->index(0, 0));
 
     ui->grpToolBox->show();
     ui->lblRequest->show();
     ui->lblResponse->show();
-//    #ifndef QT_DEBUG
-//    ui->tableView->hide();
-//    #endif
     ui->scrollArea->show();
-}
-
-QByteArray WdgTest::prepeareRequest(const ModbusDataEntries::EntryList &entryList)
-{
-    if (entryList.isEmpty())
-            return QByteArray();
-    QByteArray packet;
-    packet.append((char)0xAA);
-    packet.append((char)0x01);
-    packet.append((char)(entryList.count()*5 + 1)); // 5: Her veri icin 4byte adres bilgisi ve 1 adet boyut bilgisi; 1: toplam veri adedi
-    packet.append((char)entryList.count()); // toplam veri adedi
-
-    char chkSum = (char)entryList.count();
-
-    foreach (ModbusData *entry, entryList ) {
-        QMetaType t(entry->dataType());
-        packet.append((char)entry->address());
-        packet.append((char)(entry->address() >> 8));
-        packet.append((char)(entry->address() >> 16));
-        packet.append((char)(entry->address() >> 24));
-        packet.append((char)t.sizeOf());
-
-        chkSum += (char)entry->address();
-        chkSum += (char)(entry->address() >> 8);
-        chkSum += (char)(entry->address() >> 16);
-        chkSum += (char)(entry->address() >> 24);
-        chkSum += (char)t.sizeOf();
-    }
-
-    packet.append(chkSum);
-    packet.append((char) 0x55);
-
-    return packet;
 }
 
 void WdgTest::actualValueChanged(int value)
@@ -257,31 +230,27 @@ void WdgTest::actualValueChanged(QString value)
 }
 
 void WdgTest::on_btnStart_clicked()
-{    
-    emit sgRequest(prepeareRequest(m_entryList));
+{
+//    m_dataEntries->openCloseRequest();
+    m_dataEntries->sendRequest();
 }
 
 void WdgTest::on_btnStop_clicked()
 {
-    static const QByteArray data = (QByteArray().append((char)0xAA).append((char)0x03)
-                                                .append((char)0x03).append((char)0x00)
-                                                .append((char)0x00).append((char)0x00)
-                                                .append((char)0x00).append((char)0x55)); // cihaz tarafinda haberlesmeyi acar
-
-    emit sgRequest(data);
+    m_dataEntries->openCloseRequest();
 }
 
 void WdgTest::slResponse(const QByteArray &response)
 {
     ui->lblResponse->setText(tr("Response: #%1#").arg(QString(response.toHex(':').toUpper())));
 
-    if (response.at(3) == m_entryList.count()) {
+    if (response.at(3) == m_dataEntries->allEntries().count()) {
 
         int offset = 4;
-        foreach (ModbusData *entry, m_entryList) {
+        foreach (EBusData *entry, m_dataEntries->allEntries()) {
             const int len = QMetaType(entry->dataType()).sizeOf();
             const QByteArray ba = response.mid(offset, len);
-            entry->setData(entry->dataType(), (void*)ba.data());
+            entry->changeData(entry->dataType(), (void*)ba.data());
             offset += len;
 //                qDebug() << entry->alias() << entry->data() << QString(ba.toHex(':').toUpper()) << len;
         }

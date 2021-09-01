@@ -39,17 +39,12 @@
 #include "menubox.h"
 
 #include "pages/WdgTest.h"
-#include "objects/modbusdata.h"
-#include "objects/modbusdataentries.h"
-
-static int reqCount = 0;
-static int resCount = 0;
 
 MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
     QMainWindow(parent),
     m_policy(EmitCloseEventSignal),
     ui(new Ui::MainWindow),
-    m_thread(nullptr),
+    m_onbusMaster(nullptr),
     m_commSettings(new CommSettings("comm.ini"))
 {
     ui->setupUi(this);
@@ -84,18 +79,11 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
     m_dlgModbusRTU = new SettingsRTU(this, m_commSettings);
     m_dlgSettings = new Settings(this, m_commSettings);
 
-    m_thread = createMasterThread();
+    m_onbusMaster = createOnBusMaster();
 
-    m_modbusEntries = new ModbusDataEntries(this);
-
-    connect(m_thread, &MasterThread::errorOccurred, this, &MainWindow::threadErrorOccured);
-    connect(m_thread, &MasterThread::stateChanged, this, &MainWindow::threadStateChanged);
-    connect(m_thread, &MasterThread::finished, this, &MainWindow::threadFinished);
-    connect(m_thread, &MasterThread::response, this, &MainWindow::showResponse);
-    connect(m_thread, &MasterThread::request, this, &MainWindow::showRequest);
-
-    connect(m_modbusEntries, &ModbusDataEntries::sgProcessRange, this, &MainWindow::sgProcessRange);
-    connect(m_modbusEntries, &ModbusDataEntries::sgProcessValue, this, &MainWindow::sgProcessValue);
+    connect(m_onbusMaster, &OnBusMaster::errorOccurred, this, &MainWindow::threadErrorOccured);
+    connect(m_onbusMaster, &OnBusMaster::stateChanged, this, &MainWindow::threadStateChanged);
+    connect(m_onbusMaster, &OnBusMaster::finished, this, &MainWindow::threadFinished);
 
     //UI - Actions
     connect(ui->actionSerial_RTU, SIGNAL(triggered()), this, SLOT(showSettingsModbusRTU()));
@@ -113,7 +101,7 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
     connect(ui->actionAbout,SIGNAL(triggered()),m_dlgAbout,SLOT(show()));
 
     //UI - connections
-    connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::changedConnect);
+    connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::toggleConnection);
     connect(ui->actionOpenLogFile, SIGNAL(triggered()), this, SLOT(openLogFile()));
     connect(ui->actionLoad_Session, SIGNAL(triggered(bool)), this, SLOT(loadSession()));
     connect(ui->actionSave_Session, SIGNAL(triggered(bool)), this, SLOT(saveSession()));
@@ -180,21 +168,17 @@ void MainWindow::callCreateForm()
     m_core->setMenuBox(menuBox);
     ui->splitter->addWidget(menuBox);
 
-    WdgTest *page = new WdgTest(m_core, m_modbusEntries, ui->splitter);
+    WdgTest *page = new WdgTest(m_core, m_onbusMaster, ui->splitter);
     ui->splitter->addWidget(page);
 
-    connect(m_thread, &MasterThread::stateChanged, page, &WdgTest::slModbusStateChanged);
-    connect(page, &WdgTest::sgRequest,  this, &MainWindow::slRequest);
+    connect(m_onbusMaster, &OnBusMaster::stateChanged, page, &WdgTest::slModbusStateChanged);
     connect(this, &MainWindow::sgResponse, page, &WdgTest::slResponse);
 
-//    connect(menuBox, SIGNAL(pageChanged(QString,int)), this, SLOT(slPageChanged(QString,int)));
-    connect(menuBox, SIGNAL(pageChanged(QString,int)), page, SLOT(slUpdateModelByPageId(QString,int)));
-
-    collectRegisters();
+    connect(menuBox, SIGNAL(pageChanged(QString,int)), page, SLOT(init(QString,int)));
 
     ui->actionConnect->setEnabled(true);
     ui->actionOpenFile->setEnabled(false);
-    threadStateChanged(MasterThread::UnconnectedState);
+    threadStateChanged(OnBusMaster::UnconnectedState);
     updateStatusBar();
 }
 
@@ -228,7 +212,7 @@ void MainWindow::showSettings()
 {
     //Show General Settings Dialog
     m_dlgSettings->modbus_connected = false; // m_modbus->isConnected();
-    if (m_dlgSettings->exec()==QDialog::Accepted) {
+    if (m_dlgSettings->exec() == QDialog::Accepted) {
 //        QLOG_TRACE()<<  "Settings changes accepted ";
 //        m_modbus->rawModel->setMaxNoOfLines(m_modbusCommSettings->maxNoOfLines().toInt());
 //        m_modbus->setTimeOut(m_modbusCommSettings->timeOut().toInt());
@@ -241,21 +225,10 @@ void MainWindow::showSettings()
     updateStatusBar();
 }
 
-void MainWindow::changedScanRate(int value)
-{
-    //Enable-Disable Time Interval
-//    QLOG_TRACE()<<  "ScanRate changed. Value = " << value;
-    m_commSettings->setScanRate(value);
-    m_commSettings->saveSettings();
-
-//    m_modbus->setScanRate(value);
-}
-
 void MainWindow::loadSession()
 {
     QString fName;
 
-//     QLOG_TRACE()<<  "load session";
      fName = QFileDialog::getOpenFileName(this,
                                           tr("Load Configuraion File"),
                                           "",
@@ -263,17 +236,8 @@ void MainWindow::loadSession()
     //check
      if (fName != ""){
          m_commSettings->loadSession(fName);
-         //Update UI
-//         ui->sbStartAddress->setMinimum(m_modbusCommSettings->baseAddr().toInt());
-//         ui->cmbBase->setCurrentIndex(m_modbusCommSettings->base());
-//         ui->cmbFunctionCode->setCurrentIndex(m_modbusCommSettings->functionCode());
-//         ui->cmbModbusMode->setCurrentIndex(m_modbusCommSettings->modbusMode());
-//         ui->sbSlaveID->setValue(m_modbusCommSettings->slaveID());
-//         ui->spInterval->setValue(m_modbusCommSettings->scanRate());
-//         ui->sbStartAddress->setValue(m_modbusCommSettings->startAddr());
-//         ui->sbNoOfRegs->setValue(m_modbusCommSettings->noOfRegs());
          updateStatusBar();
-//         refreshView();
+
          QMessageBox::information(this, "", tr("Load Configuraion File : ") + fName);
      }
      else
@@ -283,22 +247,17 @@ void MainWindow::loadSession()
 
 void MainWindow::saveSession()
 {
-    QString fName;
+    QString fName = QFileDialog::getSaveFileName(this,
+                                         tr("Save Configuraion file"),
+                                         "",
+                                         tr("Configuraion Files (*.db)"));
 
-//     QLOG_TRACE()<<  "save session";
-     fName = QFileDialog::getSaveFileName(this,
-                                          tr("Save Configuraion file"),
-                                          "",
-                                          tr("Configuraion Files (*.db)"));
-
-     //check
-     if (fName != "")
-     {
-         m_commSettings->saveSession(fName);
-         QMessageBox::information(this, "", tr("Save Configuraion File : ") + fName);
-     }
-     else
-         QMessageBox::information(this, "", tr("Cancel operation or No File Selected"));
+    if (fName != "") {
+        m_commSettings->saveSession(fName);
+        QMessageBox::information(this, "", tr("Save Configuraion File : ") + fName);
+    }
+    else
+        QMessageBox::information(this, "", tr("Cancel operation or No File Selected"));
 
 }
 
@@ -344,13 +303,11 @@ void MainWindow::slShowPairRegisterPage()
     page.exec();
 }
 
-void MainWindow::slPageChanged(const QString &name, const int &id)
-{
-    //    qDebug() << id << name;
-}
-
 void MainWindow::closeEvent(QCloseEvent *e)
 {
+    if (m_onbusMaster->isRunning())
+        m_onbusMaster->closePort();
+
     switch (m_policy) {
     case AcceptCloseEvents:
         QMainWindow::closeEvent(e);
@@ -363,56 +320,18 @@ void MainWindow::closeEvent(QCloseEvent *e)
     }
 }
 
-MasterThread* MainWindow::createMasterThread()
+OnBusMaster *MainWindow::createOnBusMaster()
 {
-    if (m_thread)
-        return m_thread;
+    if (m_onbusMaster)
+        return m_onbusMaster;
 
-    MasterThread *mt = new MasterThread();
-
-    return mt;
+    return new OnBusMaster();
 }
 
-void MainWindow::closeMasterThread()
+void MainWindow::closeOnBusMaster()
 {
-    if (m_thread)
-        m_thread->closePort();
-}
-
-void MainWindow::collectRegisters()
-{
-    QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
-    qry.prepare("SELECT r.ID AS rID, r.NAME, vt.ID AS VTYPE, vt.DESCRIPTION, r.ADDRESS, r.PRECISION, '0' AS ACTUAL, u.UNIT \
-                 FROM REGISTER AS r \
-                 LEFT JOIN VARIANT_TYPE as vt ON r.VARIANT_ID = vt.ID \
-                 LEFT JOIN MODBUS_FUNCTION as mf ON r.MODBUS_FUNC_ID = mf.ID \
-                 LEFT JOIN UNITS as u ON  r.UNIT_ID = u.ID \
-                 WHERE r.ID IN ( SELECT REGISTER_ID FROM PAGE_REGISTER ) GROUP BY r.ID ORDER BY r.ADDRESS;");
-
-    if (!qry.exec()) {
-        qDebug() << qry.lastError() << qry.lastQuery();
-        return;
-    }
-
-    int rIdIdx = qry.record().indexOf("rID");
-    int rNameIdx = qry.record().indexOf("NAME");
-    int rAddressIdx = qry.record().indexOf("ADDRESS");
-    int rActualIdx = qry.record().indexOf("ACTUAL");
-    int vTypeIdx = qry.record().indexOf("VTYPE");
-
-    while (qry.next()) {
-        const uint actual = qry.value(rActualIdx).toInt();
-        bool ok = false;
-        ModbusData *entry = m_modbusEntries->addEntry(qry.value(rIdIdx).toInt(),
-                                                      qry.value(rAddressIdx).toString().toUInt(&ok, 16),
-                                                      QVariant(qry.value(vTypeIdx).toUInt(), (void*)&actual),
-                                                      qry.value(rNameIdx).toString());
-
-        if (entry) {
-//            connect(entry, &ModbusData::valueChanged, this, &MainWindow::slActualChanged);
-            connect(entry, &ModbusData::valueChanged, this, static_cast<void (MainWindow::*)(QVariant)>(&MainWindow::slActualChanged));
-        }
-    }
+    if (m_onbusMaster)
+        m_onbusMaster->closePort();
 }
 
 QString MainWindow::dbFile() const
@@ -444,8 +363,7 @@ QString getLastExecutedQuery(const QSqlQuery& query)
 
     it.toBack();
 
-    while (it.hasPrevious())
-    {
+    while (it.hasPrevious()) {
         it.previous();
         str.replace(it.key(),it.value().toString());
     }
@@ -454,25 +372,25 @@ QString getLastExecutedQuery(const QSqlQuery& query)
 
 void MainWindow::slActualChanged(QVariant value)
 {
-    ModbusData *modbusData = qobject_cast<ModbusData*>(sender());
+//    ModbusData *modbusData = qobject_cast<ModbusData*>(sender());
 
-    if (!modbusData)
-        return;
+//    if (!modbusData)
+//        return;
 
-    QSqlDatabase db = QSqlDatabase::database("log.db");
+//    QSqlDatabase db = QSqlDatabase::database("log.db");
 
-    QSqlQuery qry = QSqlQuery(db);
-    qry.prepare("INSERT INTO LOG (ADDRESS, VALUE, TIMESTAMP) VALUES(:address, :value, :timestamp);");
+//    QSqlQuery qry = QSqlQuery(db);
+//    qry.prepare("INSERT INTO LOG (ADDRESS, VALUE, TIMESTAMP) VALUES(:address, :value, :timestamp);");
 
-    qry.bindValue(":address", modbusData->address());
-    qry.bindValue(":timestamp", QDateTime::currentDateTime().toString("yyyy.MM.dd hh:mm:ss:zzz"));
+//    qry.bindValue(":address", modbusData->address());
+//    qry.bindValue(":timestamp", QDateTime::currentDateTime().toString("yyyy.MM.dd hh:mm:ss:zzz"));
 
-    if (modbusData->dataType() == QMetaType::SChar || modbusData->dataType() == QMetaType::Char)
-        qry.bindValue(":value", (qint8)value.toChar().unicode());// qDebug() << "AA" << value.type() << (qint8)value.toChar().unicode();
-    else if (modbusData->dataType() == QMetaType::UChar)
-        qry.bindValue(":value", (quint8)value.toChar().unicode()); // qDebug() << "BB" << value.type() << (quint8)value.toChar().unicode();
-    else
-        qry.bindValue(":value", value.toString());
+//    if (modbusData->dataType() == QMetaType::SChar || modbusData->dataType() == QMetaType::Char)
+//        qry.bindValue(":value", (qint8)value.toChar().unicode());// qDebug() << "AA" << value.type() << (qint8)value.toChar().unicode();
+//    else if (modbusData->dataType() == QMetaType::UChar)
+//        qry.bindValue(":value", (quint8)value.toChar().unicode()); // qDebug() << "BB" << value.type() << (quint8)value.toChar().unicode();
+//    else
+//        qry.bindValue(":value", value.toString());
 
 //    qDebug() << getLastExecutedQuery(qry);
 
@@ -480,151 +398,106 @@ void MainWindow::slActualChanged(QVariant value)
 //        qDebug() << qry.lastError() << getLastExecutedQuery(qry);
 }
 
-void MainWindow::threadErrorOccured(MasterThread::Error error)
+void MainWindow::threadErrorOccured(OnBusMaster::Error error)
 {
     switch (error) {
-    case MasterThread::NoError:
-//        qDebug() << "MasterThread::NoError";
+    case OnBusMaster::NoError:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::NoError"));
         break;
-    case MasterThread::ReadError:
-//        qDebug() << "MasterThread::ReadError";
+    case OnBusMaster::ReadError:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::ReadError"));
         break;
-    case MasterThread::WriteError:
-//        qDebug() << "MasterThread::WriteError";
+    case OnBusMaster::WriteError:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::WriteError"));
         break;
-    case MasterThread::ConnectionError:
-//        qDebug() << "MasterThread::ConnectionError";
+    case OnBusMaster::ConnectionError:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::ConnectionError"));
         QMessageBox::critical(this, tr("Serial Port"), tr("The Port Could Not Open!"));
         break;
-    case MasterThread::ConfigurationError:
-//        qDebug() << "MasterThread::ConfigurationError";
+    case OnBusMaster::ConfigurationError:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::ConfigurationError"));
         QMessageBox::critical(this, tr("Serial Port"), tr("Port Configuration Is Invalid!"));
         break;
-    case MasterThread::TimeoutError:
-//        qDebug() << "MasterThread::TimeoutError";
+    case OnBusMaster::WriteTimeoutError:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::WriteTimeoutError"));
         break;
-    case MasterThread::ProtocolError:
-//        qDebug() << "MasterThread::ProtocolError";
+    case OnBusMaster::ReadTimeoutError:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::ReadTimeoutError"));
         break;
-    case MasterThread::ReplyAbortedError:
-//        qDebug() << "MasterThread::ReplyAbortedError";
+    case OnBusMaster::ProtocolError:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::ProtocolError"));
         break;
-    case MasterThread::UnknownError:
-//        qDebug() << "MasterThread::UnknownError";
+    case OnBusMaster::ReplyAbortedError:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::ReplyAbortedError"));
+        break;
+    case OnBusMaster::UnknownError:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::UnknownError"));
         break;
     default:
         break;
     }
 }
 
-void MainWindow::threadStateChanged(MasterThread::State state)
+void MainWindow::threadStateChanged(OnBusMaster::State state)
 {
-    bool connected = (state != MasterThread::UnconnectedState);
+    bool connected = (state != OnBusMaster::UnconnectedState);
 
     switch (state) {
-    case MasterThread::UnconnectedState:
-        qDebug() << "MasterThread::UnconnectedState";
+    case OnBusMaster::UnconnectedState:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::UnconnectedState"));
         ui->actionConnect->setText(tr("Bağlan"));
         ui->actionConnect->setChecked(false);
         m_statusInd->setPixmap(QPixmap(":/icons/bullet-red-16.png"));
         break;
-    case MasterThread::ConnectingState:
-        qDebug() << "MasterThread::ConnectingState";
+    case OnBusMaster::ConnectingState:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::ConnectingState"));
         m_statusInd->setPixmap(QPixmap(":/icons/bullet-orange-16.png"));
         break;
-    case MasterThread::ConnectedState:
-        qDebug() << "MasterThread::ConnectedState";
+    case OnBusMaster::ConnectedState:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::ConnectedState"));
         ui->actionConnect->setText(tr("Kopar "));
         ui->actionConnect->setChecked(true);
         m_statusInd->setPixmap(QPixmap(":/icons/bullet-green-16.png"));
         break;
-    case MasterThread::ClosingState:
-        qDebug() << "MasterThread::ClosingState";
+    case OnBusMaster::ClosingState:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::ClosingState"));
         m_statusInd->setPixmap(QPixmap(":/icons/bullet-orange-16.png"));
         break;
     }
 
-//    ui->actionScan->setChecked(false);
     setControlsEnabled(connected);
 }
 
 void MainWindow::setControlsEnabled(bool enable)
 {
-    qDebug() << enable;
     ui->actionSerial_RTU->setEnabled(!enable);
     ui->actionLoad_Session->setEnabled(enable);
     ui->actionSave_Session->setEnabled(enable);
     ui->actionOpenLogFile->setEnabled(enable);
 }
 
-void MainWindow::changedConnect(bool value) //Connect - Disconnect
+void MainWindow::toggleConnection(bool status) //Connect - Disconnect
 {
-    if (!m_thread)
+    Q_UNUSED(status)
+    if (!m_onbusMaster)
         return;
 
     setControlsEnabled(false);
     m_lblRequestTraffic->clear();
-//    m_lblResponseTraffic->setText(tr("Port Status: %1").arg("..."));
 
-    if (m_thread->state() == MasterThread::UnconnectedState) {
+    if (m_onbusMaster->state() == OnBusMaster::UnconnectedState) {
 
-        if (m_thread->setConfig(m_commSettings->serialPortName(), QSerialPort::Baud115200,
-                                QSerialPort::NoParity, QSerialPort::Data8, QSerialPort::OneStop, 100)) {
-            m_thread->openPort();
-            QTimer::singleShot(100, this, SLOT(openCloseDevice()));
+        if (m_onbusMaster->setConfig(m_commSettings->serialPortName(), QSerialPort::Baud115200,
+                                QSerialPort::NoParity, QSerialPort::Data8, QSerialPort::OneStop, 10)) {
+            m_onbusMaster->openPort();
         }
     }
-    else if (m_thread->state() == MasterThread::ConnectedState) {
-        openCloseDevice();
-        QTimer::singleShot(500, m_thread, SLOT(closePort()));
+    else if (m_onbusMaster->state() == OnBusMaster::ConnectedState) {
+        QTimer::singleShot(500, m_onbusMaster, SLOT(closePort()));
     }
-}
-
-void MainWindow::openCloseDevice()
-{
-    QByteArray data; // cihaz tarafinda haberlesmeyi acar
-    data.append((char) 0xAA);
-    data.append((char) 0x03);
-    data.append((char) 0x03);
-    data.append((char) 0x00);
-    data.append((char) 0x00);
-    data.append((char) 0x00);
-    data.append((char) 0x00);
-    data.append((char) 0x55);
-    m_thread->transaction(data);
 }
 
 void MainWindow::threadFinished()
 {
     qDebug() << Q_FUNC_INFO;
 }
-
-void MainWindow::showRequest(const QByteArray &data)
-{
-    m_lblRequestTraffic->setText(tr("Request: %1 #%2#").arg(++reqCount).arg(QString(data.toHex(':').toUpper())));
-}
-
-void MainWindow::showResponse(const QByteArray &data)
-{
-//    ResponsePacket *packet = new ResponsePacket();
-//    ResponsePacket *packet = new ResponsePacket(data, this);
-    ResponsePacket packet(data, this);
-
-    connect(&packet, &ResponsePacket::responseStatus, [this](const QString &status){
-       m_lblResponseStatus->setText(tr("Status: %1").arg(status));
-    });
-
-    connect(&packet, &ResponsePacket::responsePacket, this, &MainWindow::sgResponse);
-
-//    packet->setPacket(data);
-    packet.initPacket();
-//    packet.deleteLater();
-    m_lblResponseTraffic->setText(tr("Response: %1 #%2#").arg(++resCount).arg(QString(data.toHex(':').toUpper())));
-//    emit sgResponse(data);
-}
-
-void MainWindow::slRequest(const QByteArray &data)
-{
-    m_thread->transaction(data);
-}
-
