@@ -33,6 +33,7 @@ protected:
 
 Q_DECLARE_METATYPE(EData*)
 Q_DECLARE_INTERFACE(EData, "EData") // define this out of namespace scope
+Q_DECLARE_TYPEINFO(EData, Q_MOVABLE_TYPE);
 
 class EDataChar final : public EData
 {
@@ -194,6 +195,71 @@ private:
     qulonglong m_data;
 };
 
+/*************************************** EData Factory Pattern ***************************************/
+class EDataInterface
+{
+public:
+    EDataInterface() {}
+    virtual ~EDataInterface() {}
+    virtual std::unique_ptr<EData> Create() = 0;
+};
+
+template <class T>
+class EDataCreator : public EDataInterface {
+public:
+    EDataCreator() {}
+    virtual ~EDataCreator() {}
+    virtual std::unique_ptr<EData> Create() { return std::make_unique<T>(); }
+
+};
+
+class EDataFactory
+{
+public:
+    EDataFactory()
+    {
+        // If you want, you can do all your Register() calls in here, and even
+        // make the Register() function private.
+        // Or call RegisterAllTypes().
+    }
+
+    template <QMetaType::Type type, typename T>
+    void Register()
+    {
+        Register(type, std::make_unique<EDataCreator<T> >());
+    }
+
+    void RegisterAllTypes()
+    {
+        Register<QMetaType::Char,       EDataChar>();
+        Register<QMetaType::UChar,      EDataUChar>();
+        Register<QMetaType::Short,      EDataShort>();
+        Register<QMetaType::UShort,     EDataUShort>();
+        Register<QMetaType::Long,       EDataLong>();
+        Register<QMetaType::ULong,      EDataULong>();
+        Register<QMetaType::LongLong,   EDataLongLong>();
+        Register<QMetaType::ULongLong,  EDataULongLong>();
+    }
+
+    std::unique_ptr<EData> Create(QMetaType::Type type)
+    {
+        TEDataToVariant::iterator it = m_eDataToVariant.find(type);
+        if (it == m_eDataToVariant.end())
+            return nullptr;
+        return it->second->Create();
+    }
+
+private:
+    void Register(QMetaType::Type type, std::unique_ptr<EDataInterface>&& creator )
+    {
+        m_eDataToVariant[type] = std::move(creator);
+    }
+
+    typedef std::map<QMetaType::Type, std::unique_ptr<EDataInterface> > TEDataToVariant;
+    TEDataToVariant m_eDataToVariant;
+};
+
+/***************************************** EDataUtil **********************************************/
 namespace EDataUtil {
 
 template <typename T>
@@ -202,51 +268,43 @@ static T getData(T t, EData *d)
    int dType = qMetaTypeId<T>(); //QMetaType::type(typeid(T).name());
 
    switch (dType) {
-   case QMetaType::Char:
-   {
+   case QMetaType::Char: {
        EDataChar *eData = dynamic_cast<EDataChar *>(d);
        t = eData->data();
    } break;
-   case QMetaType::UChar:
-   {
+   case QMetaType::UChar: {
        EDataUChar *eData = dynamic_cast<EDataUChar *>(d);
        t = eData->data();
    } break;
 
    case QMetaType::Int:
-   case QMetaType::Short:
-   {
+   case QMetaType::Short: {
        EDataShort *eData = dynamic_cast<EDataShort *>(d);
        t = eData->data();
    } break;
 
    case QMetaType::UInt:
-   case QMetaType::UShort:
-   {
+   case QMetaType::UShort: {
        EDataUShort *eData = dynamic_cast<EDataUShort *>(d);
        t = eData->data();
    } break;
 
-   case QMetaType::Long:
-   {
+   case QMetaType::Long: {
        EDataLong *eData = dynamic_cast<EDataLong *>(d);
        t = eData->data();
    } break;
 
-   case QMetaType::ULong:
-   {
+   case QMetaType::ULong: {
        EDataULong *eData = dynamic_cast<EDataULong *>(d);
        t = eData->data();
    } break;
 
-   case QMetaType::LongLong:
-   {
+   case QMetaType::LongLong: {
        EDataLongLong *eData = dynamic_cast<EDataLongLong *>(d);
        t = eData->data();
    } break;
 
-   case QMetaType::ULongLong:
-   {
+   case QMetaType::ULongLong: {
        EDataULongLong *eData = dynamic_cast<EDataULongLong *>(d);
        t = eData->data();
    } break;
@@ -261,12 +319,11 @@ static T getData(T t, EData *d)
 template <typename T>
 static T getData(EData *d)
 {
-    T t;
-    t = getData(t, d);
+    T t = getData(t, d);
     return t;
 }
 
-static EData* create(QMetaType::Type type)
+static EData* create(const QMetaType::Type type)
 {
     switch ((int)type) {
     case QMetaType::Char:
@@ -289,10 +346,11 @@ static EData* create(QMetaType::Type type)
         return new EDataULongLong();
     }
 
+    Q_ASSERT_X(nullptr, "EDataUtil::create(QMetaType::Type)", "EData Not Created!");
     return nullptr;
 }
 
-static EData* create(QMetaType::Type type, const QVariant &data)
+static EData* create(const QMetaType::Type type, const QVariant &data)
 {
     EData *edata = nullptr;
     bool ok = false;
@@ -352,10 +410,11 @@ static EData* create(QMetaType::Type type, const QVariant &data)
         break;
     }
 
+    Q_ASSERT_X(edata, "EDataUtil::create(QMetaType::Type, const QVariant &)", "EData Not Created!");
     return edata;
 }
 
-static EData* create(QMetaType::Type type, const void *data)
+static EData* create(const QMetaType::Type type, const void *data)
 {
     EData *edata = create(type);
     if (data)

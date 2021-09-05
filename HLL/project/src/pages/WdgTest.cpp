@@ -117,17 +117,15 @@ void WdgTest::collectEntries()
 
     for(int modelIdx = 0; modelIdx < m_model->rowCount(); modelIdx++) {
         bool ok = false;
-        const uint actual = m_model->record(modelIdx).value(rActualIdx).toInt();
+
         QString name = m_model->record(modelIdx).value(rNameIdx).toString();
         int registerId = m_model->record(modelIdx).value(rIdIdx).toInt();
         uint address = m_model->record(modelIdx).value(rAddressIdx).toString().toUInt(&ok, 16);
         int precision = m_model->record(modelIdx).value(rPrecisionIdx).toInt();
-        QVariant actualValue = m_model->record(modelIdx).value(rActualIdx);
 
         const QMetaType::Type type = (QMetaType::Type)m_model->record(modelIdx).value(vTypeIdx).toUInt();
-        QVariant value = m_model->record(modelIdx).value(vTypeIdx);
 
-        EData *data = EDataUtil::create(type, value);
+        EData *data = EDataUtil::create(type);
 
         if (data)
             m_dataEntries->addEntry(registerId, address, data, precision, name);

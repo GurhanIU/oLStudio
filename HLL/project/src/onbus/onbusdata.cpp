@@ -1,4 +1,4 @@
-#include "ebusdata.h"
+#include "onbusdata.h"
 
 EBusData::EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, EData *data, int precision, const QString &alias, QObject *parent) :
     m_mode(ModeFlag::None),

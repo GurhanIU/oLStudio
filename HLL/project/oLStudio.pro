@@ -11,7 +11,7 @@ QT += core gui sql xml concurrent serialbus serialport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++11
+CONFIG += c++17
 
 QMAKE_CXXFLAGS += -Wno-ignored-qualifiers
 QMAKE_CXXFLAGS += -std=c++11
@@ -27,19 +27,21 @@ INCLUDEPATH += \
     shared \
 #    uilib \
     abstractions \
-    components
+    components \
+    onbus
 
 include(src/shared/shared.pri)
 #include(src/uilib/uilib.pri)
 include(src/abstractions/abstractions.pri)
 include(src/components/components.pri)
+include(src/onbus/onbus.pri)
 
 
 
 SOURCES += \
+    src/forms/dlgregister.cpp \
     src/main.cpp \
     src/MainWindow.cpp \
-    src/forms/dlgaddress.cpp \
     src/forms/dlgparameter.cpp \
     src/forms/dlgmenu.cpp \
     src/forms/dlgmodbusfunction.cpp \
@@ -50,19 +52,17 @@ SOURCES += \
     src/forms/settings.cpp \
     src/forms/about.cpp \
     src/objects/commsettings.cpp \
-    src/objects/ebusdata.cpp \
     src/objects/ebusdataentries.cpp \
     src/objects/editablesqlmodel.cpp \
     src/objects/modbusdata.cpp \
     src/objects/modbusdataentries.cpp \
-    src/objects/onbusmaster.cpp \
     src/objects/responsepacket.cpp \
     src/pages/WdgTest.cpp
 
 HEADERS += \
+    src/forms/dlgregister.h \
     src/initdb.h \
     src/MainWindow.h \
-    src/forms/dlgaddress.h \
     src/forms/dlgparameter.h \
     src/forms/dlgmenu.h \
     src/forms/dlgmodbusfunction.h \
@@ -73,20 +73,17 @@ HEADERS += \
     src/forms/settings.h \
     src/forms/about.h \
     src/objects/commsettings.h \
-    src/objects/ebusdata.h \
     src/objects/ebusdataentries.h \
-    src/objects/edata.h \
     src/objects/editablesqlmodel.h \
     src/objects/modbusdata.h \
     src/objects/modbusdataentries.h \
-    src/objects/onbusmaster.h \
     src/objects/responsepacket.h \
     src/pages/WdgTest.h
 
 FORMS += \
     src/MainWindow.ui \
-    src/forms/dlgaddress.ui \
     src/forms/dlgparameter.ui \
+    src/forms/dlgregister.ui \
     src/forms/settingsrtu.ui \
     src/forms/settings.ui \
     src/forms/dlgmenu.ui \

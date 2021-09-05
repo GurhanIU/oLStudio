@@ -118,7 +118,7 @@ QByteArray ModbusDataEntries::prepareRequest(const EntryList &entryList)
             return QByteArray();
     QByteArray packet;
     packet.append((char)0xAA);
-    packet.append((char)FC_WATCH_CONF);
+    packet.append((char)FC_WATCH_CONF); // Paket tipine gore faklilik gosterecek
     packet.append((char)(entryList.count()*5 + 1)); // 5: Her veri icin 4byte adres bilgisi ve 1 adet boyut bilgisi; 1: toplam veri adedi
     packet.append((char)entryList.count()); // toplam veri adedi
 
@@ -156,7 +156,7 @@ QByteArray ModbusDataEntries::requestPacket() const
 }
 
 void ModbusDataEntries::openCloseRequest()
-{ // cihaz tarafinda haberlesmeyi acar
+{ // cihaz tarafinda haberlesmeyi baslatir veya durdurur
     static const QByteArray data = (QByteArray().append((char)0xAA).append((char)0x03)
                                                 .append((char)0x03).append((char)0x00)
                                                 .append((char)0x00).append((char)0x00)

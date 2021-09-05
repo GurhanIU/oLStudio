@@ -80,6 +80,12 @@ void EBusDataEntries::deleteEntry(int address)
         delete e;
 }
 
+void EBusDataEntries::deleteAll()
+{
+    qDeleteAll(allEntries());
+    allEntries().clear();
+}
+
 void EBusDataEntries::readByEntry(EBusData *e)
 {
     if (e) {

@@ -26,7 +26,7 @@
 #include "commsettings.h"
 #include "infobar.h"
 
-#include "forms/dlgaddress.h"
+#include "forms/dlgregister.h"
 #include "forms/dlgmodbusfunction.h"
 #include "forms/dlgparameter.h"
 #include "forms/dlgmenu.h"
@@ -263,7 +263,7 @@ void MainWindow::saveSession()
 
 void MainWindow::slShowAddress()
 {
-    DlgAddress page(m_core);
+    DlgRegister page(m_core);
     page.exec();
 }
 

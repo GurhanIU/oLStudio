@@ -28,6 +28,7 @@ public:
     bool hasEntry(int address);
     bool hasEntry(EBusData *e);
     void deleteEntry(int address);
+    void deleteAll();
 
     QModbusDataUnit::RegisterType registerType() const;
     void setRegisterType(const QModbusDataUnit::RegisterType &registerType);

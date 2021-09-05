@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 5.0.0, 2021-09-01T15:49:49. -->
+<!-- Written by QtCreator 5.0.0, 2021-09-03T20:21:49. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -216,25 +216,20 @@
    </valuemap>
    <value type="int" key="ProjectExplorer.Target.DeployConfigurationCount">1</value>
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.RunConfiguration.0">
-    <value type="QString" key="Analyzer.Perf.CallgraphMode">dwarf</value>
-    <valuelist type="QVariantList" key="Analyzer.Perf.Events">
-     <value type="QString">cpu-cycles</value>
-    </valuelist>
-    <value type="QString" key="Analyzer.Perf.SampleMode">-F</value>
     <value type="bool" key="Analyzer.Perf.Settings.UseGlobalSettings">true</value>
     <value type="bool" key="Analyzer.QmlProfiler.Settings.UseGlobalSettings">true</value>
     <value type="bool" key="Analyzer.Valgrind.Settings.UseGlobalSettings">true</value>
     <valuelist type="QVariantList" key="CustomOutputParsers"/>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:E:/MyProjects/ON_LAB/OnLab/oLStudio/HLL/project/oLStudio.pro</value>
-    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">E:/MyProjects/ON_LAB/OnLab/oLStudio/HLL/project/oLStudio.pro</value>
-    <value type="QString" key="RunConfiguration.Arguments">E:\MyProjects\ON_LAB\OnLab\oLStudio\HLL\db\onLab_V0.0.0.db</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">oLStudio2</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:E:/MyProjects/ON_LAB/oLStudio/HLL/project/oLStudio.pro</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">E:/MyProjects/ON_LAB/oLStudio/HLL/project/oLStudio.pro</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebugger">false</value>
-    <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">false</value>
+    <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
     <value type="QString" key="RunConfiguration.WorkingDirectory.default">E:/MyProjects/ON_LAB/OnLab/oLStudio/HLL/build-oLStudio-Desktop_Qt_5_15_2_MinGW_32bit-Debug</value>
    </valuemap>
    <value type="int" key="ProjectExplorer.Target.RunConfigurationCount">1</value>

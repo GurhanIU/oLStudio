@@ -1,7 +1,7 @@
 #ifndef EBUSDATA_H
 #define EBUSDATA_H
 
-#include "edata.h"
+#include "ondata.h"
 
 #include <QObject>
 #include <QMetaType>
@@ -21,7 +21,7 @@ public:
     Q_DECLARE_FLAGS(Mode, ModeFlag)
 
     explicit EBusData(int registerId, int startAddress, EData *data, int precision = 0, const QString &alias = QString(), QObject *parent = nullptr)
-        : EBusData(QModbusDataUnit::Invalid, registerId, startAddress, data, precision, alias, parent) { qDebug() << "ModbusData: qint8"; }
+        : EBusData(QModbusDataUnit::Invalid, registerId, startAddress, data, precision, alias, parent) { }
 
     explicit EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, EData *data, int precision, const QString &alias, QObject *parent = nullptr);
 
