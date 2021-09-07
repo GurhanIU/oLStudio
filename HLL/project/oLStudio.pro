@@ -7,7 +7,7 @@
 #-------------------------------------------------
 
 QT += core-private
-QT += core gui sql xml concurrent serialbus serialport
+QT += core gui sql xml concurrent serialport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
