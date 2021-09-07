@@ -1,42 +1,20 @@
-#include "ebusdata.h"
+#include "onbusdata.h"
 
-EBusData::EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, EData *data, int precision, const QString &alias, QObject *parent) :
+OnBusData::OnBusData(OnBusDataUnit::RegisterType type, int registerId, int address, OnData *data, int precision, const QString &alias, QObject *parent) :
     m_mode(ModeFlag::None),
     m_dataType(data->type()),
     m_registerType(type),
     m_registerId(registerId),
-    m_startAddress(startAddress),
+    m_address(address),
     m_data(data),
     m_precision(precision),
     m_alias(alias),
     QObject(parent)
 {
-    setObjectName(QString::number(startAddress));
-    init();
+    setObjectName(QString::number(address));
 }
 
-
-bool EBusData::init()
-{
-    if (objectName().isEmpty())
-        setObjectName(QString::number(m_startAddress));
-
-//    m_data = EDataUtil::create(dataType(), m_data.data());
-
-    const quint8 byteCount = sizeOfDataType();
-    const quint8 itemCount = byteCount / 2;
-
-    m_addressList.clear();
-    m_addressList.append(m_startAddress);
-
-    for (int i = 1; i < itemCount; i++) {
-        m_addressList.append(m_startAddress + i);
-    }
-
-    return true;
-}
-
-bool EBusData::setDataType(uint type)
+bool OnBusData::setDataType(uint type)
 {
     if (m_dataType == QMetaType::UnknownType) {
         m_dataType = type;
@@ -47,7 +25,7 @@ bool EBusData::setDataType(uint type)
     return false;
 }
 
-void EBusData::setData(EData *newEData)
+void OnBusData::setData(OnData *newEData)
 {
     if (m_data)
         delete m_data;
@@ -56,13 +34,13 @@ void EBusData::setData(EData *newEData)
     emit dataChanged(m_data);
 }
 
-void EBusData::setData(const void *data)
+void OnBusData::setData(const void *data)
 {
     if (m_dataType != QMetaType::UnknownType )
-        setData(EDataUtil::create(dataType(), data));
+        setData(OnDataUtil::create(dataType(), data));
 }
 
-void EBusData::changeData(QMetaType::Type type, void *data)
+void OnBusData::changeData(QMetaType::Type type, void *data)
 {
     if (type == dataType() && m_dataType != QMetaType::UnknownType ) {
         m_data->setData(data);
@@ -70,17 +48,17 @@ void EBusData::changeData(QMetaType::Type type, void *data)
     }
 }
 
-EData *EBusData::data() const
+OnData *OnBusData::data() const
 {
     return m_data;
 }
 
-QString EBusData::toString() const
+QString OnBusData::toString() const
 {
     return m_data->toString();
 }
 
-QString EBusData::toFormattedString() const
+QString OnBusData::toFormattedString() const
 {
     if (!m_data->isValid())
         return "NoNe";

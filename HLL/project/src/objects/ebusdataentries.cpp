@@ -1,7 +1,7 @@
 #include "ebusdataentries.h"
 
-#include "ebusdata.h"
-#include "edata.h"
+#include "onbusdata.h"
+#include "ondata.h"
 
 #include <QMessageBox>
 #include <QModbusClient>
@@ -45,14 +45,14 @@ EBusDataEntries::EntryList EBusDataEntries::allEntries()
  * @param alias
  * @return Parent object has not address return true, else return false
  */
-EBusData * EBusDataEntries::addEntry(int registerId, int address, EData *data, int precision, const QString &alias)
+OnBusData * EBusDataEntries::addEntry(int registerId, int address, OnData *data, int precision, const QString &alias)
 {
-    EBusData *entry;
+    OnBusData *entry;
     if (!hasEntry(address)) {
-        entry = new EBusData(m_registerType, registerId, address, data, precision, alias, this);
+        entry = new OnBusData(m_registerType, registerId, address, data, precision, alias, this);
         entry->setAlias(alias);
 
-        connect(entry, &EBusData::sgMessage, this, &EBusDataEntries::sgMessage);
+        connect(entry, &OnBusData::sgMessage, this, &EBusDataEntries::sgMessage);
     }
     else
         entry = this->entry(address);
@@ -67,20 +67,26 @@ bool EBusDataEntries::hasEntry(int address)
     return entry ? true : false;
 }
 
-bool EBusDataEntries::hasEntry(EBusData *e)
+bool EBusDataEntries::hasEntry(OnBusData *e)
 {
-    return hasEntry(e->startAddress());
+    return hasEntry(e->address());
 }
 
 void EBusDataEntries::deleteEntry(int address)
 {
-    EBusData *e = entry(address);
+    OnBusData *e = entry(address);
 
     if (e)
         delete e;
 }
 
-void EBusDataEntries::readByEntry(EBusData *e)
+void EBusDataEntries::deleteAll()
+{
+    qDeleteAll(allEntries());
+    allEntries().clear();
+}
+
+void EBusDataEntries::readByEntry(OnBusData *e)
 {
     if (e) {
         const EntryList eList = (EntryList() << e);
@@ -108,7 +114,7 @@ void EBusDataEntries::readEntries(const EntryList &entryList)
 
     foreach (EntryList *subEntry, subEntries) {
         int regCount = calculateRegisterCount(*subEntry); // Kontrol et
-        QModbusDataUnit readUnit = QModbusDataUnit(m_registerType, subEntry->first()->startAddress(), regCount);
+        OnBusDataUnit readUnit = OnBusDataUnit(m_registerType, subEntry->first()->address(), regCount);
 
         if (auto *reply = m_modbus->sendReadRequest(readUnit, m_device)) {
             if (!reply->isFinished())
@@ -246,7 +252,7 @@ void EBusDataEntries::writeTempValueByEntry(EBusData *e)
     if (!hasEntry(e))
         return;
     if (e) {
-        QModbusDataUnit writeUnit = QModbusDataUnit(m_registerType, e->startAddress(), 1);
+        QModbusDataUnit writeUnit = QModbusDataUnit(m_registerType, e->address(), 1);
         writeUnit.setValue(0, e->tempValue());
 
         writeDataUnit(writeUnit);
@@ -339,7 +345,7 @@ QList<QModbusDataUnit> EBusDataEntries::prepareDataUnitsForWrite(const QList<Ent
 
     foreach (EntryList *entry, entries) {
         QModbusDataUnit writeUnit = QModbusDataUnit(m_registerType,
-                                                    entry->first()->startAddress(),
+                                                    entry->first()->address(),
                                                     entry->count());
 
         // TODO Her entry sadece bir adres bilgisi tutuyorsa bu mantik gecerlidir.
@@ -375,7 +381,7 @@ QList<EBusDataEntries::EntryList *> EBusDataEntries::collectSubEntries(const Ent
         for (int i=1; i < entries.count(); i++) {
             EBusData *modbusData = entries.at(i);
             EBusData *lastModbusData = pList->last();
-            int difference = modbusData->startAddress() - lastModbusData->startAddress();
+            int difference = modbusData->address() - lastModbusData->address();
 
             if (difference > 1 || pList->count() == 125) {
                 pList = new EntryList;

@@ -1,6 +1,6 @@
 #include "modbusdataentries.h"
 
-#include "ebusdata.h"
+#include "onbusdata.h"
 #include "onbusmaster.h"
 #include "responsepacket.h"
 
@@ -89,7 +89,7 @@ QList<ModbusDataEntries::EntryList *> ModbusDataEntries::collectSubEntries(const
         for(int i=1; i < entries.count(); i++) {
             EBusData *modbusData = entries.at(i);
             EBusData *lastModbusData = pList->last();
-            int difference = modbusData->startAddress() - lastModbusData->startAddress();
+            int difference = modbusData->address() - lastModbusData->address();
 
             if (difference > 1) {
                 pList = new EntryList;
@@ -112,13 +112,13 @@ int ModbusDataEntries::count()
     return size();
 }
 
-QByteArray ModbusDataEntries::prepareRequest(const EntryList &entryList)
+QByteArray ModbusDataEntries::prepareRequest(Function code, const EntryList &entryList)
 {
     if (entryList.isEmpty())
             return QByteArray();
     QByteArray packet;
     packet.append((char)0xAA);
-    packet.append((char)FC_WATCH_CONF);
+    packet.append((char)code); // Paket tipine gore faklilik gosterecek
     packet.append((char)(entryList.count()*5 + 1)); // 5: Her veri icin 4byte adres bilgisi ve 1 adet boyut bilgisi; 1: toplam veri adedi
     packet.append((char)entryList.count()); // toplam veri adedi
 
@@ -126,16 +126,16 @@ QByteArray ModbusDataEntries::prepareRequest(const EntryList &entryList)
 
     foreach (EBusData *entry, entryList ) {
         QMetaType t(entry->dataType());
-        packet.append((char)entry->startAddress());
-        packet.append((char)(entry->startAddress() >> 8));
-        packet.append((char)(entry->startAddress() >> 16));
-        packet.append((char)(entry->startAddress() >> 24));
+        packet.append((char)entry->address());
+        packet.append((char)(entry->address() >> 8));
+        packet.append((char)(entry->address() >> 16));
+        packet.append((char)(entry->address() >> 24));
         packet.append((char)t.sizeOf());
 
-        chkSum += (char)entry->startAddress();
-        chkSum += (char)(entry->startAddress() >> 8);
-        chkSum += (char)(entry->startAddress() >> 16);
-        chkSum += (char)(entry->startAddress() >> 24);
+        chkSum += (char)entry->address();
+        chkSum += (char)(entry->address() >> 8);
+        chkSum += (char)(entry->address() >> 16);
+        chkSum += (char)(entry->address() >> 24);
         chkSum += (char)t.sizeOf();
     }
 
@@ -147,7 +147,7 @@ QByteArray ModbusDataEntries::prepareRequest(const EntryList &entryList)
 
 void ModbusDataEntries::prepareRequest()
 {
-    m_request = prepareRequest(allEntries());
+    m_request = prepareRequest(Function::FC_WATCH_VARS, allEntries());
 }
 
 QByteArray ModbusDataEntries::requestPacket() const
@@ -156,11 +156,15 @@ QByteArray ModbusDataEntries::requestPacket() const
 }
 
 void ModbusDataEntries::openCloseRequest()
-{ // cihaz tarafinda haberlesmeyi acar
-    static const QByteArray data = (QByteArray().append((char)0xAA).append((char)0x03)
-                                                .append((char)0x03).append((char)0x00)
-                                                .append((char)0x00).append((char)0x00)
-                                                .append((char)0x00).append((char)0x55));
+{ // cihaz tarafinda haberlesmeyi baslatir veya durdurur
+    static const QByteArray data = (QByteArray().append((char)0xAA)     // start
+                                                .append((char)0x03)     // cmd Id
+                                                .append((char)0x03)     // data length
+                                                .append((char)0x00)     // data
+                                                .append((char)0x00)     // data
+                                                .append((char)0x00)     // data
+                                                .append((char)0x00)     // checksum
+                                                .append((char)0x55));   // stop
 
     m_onbusMaster->transaction(data);
 }

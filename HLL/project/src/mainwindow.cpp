@@ -26,7 +26,7 @@
 #include "commsettings.h"
 #include "infobar.h"
 
-#include "forms/dlgaddress.h"
+#include "forms/dlgregister.h"
 #include "forms/dlgmodbusfunction.h"
 #include "forms/dlgparameter.h"
 #include "forms/dlgmenu.h"
@@ -81,9 +81,14 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
 
     m_onbusMaster = createOnBusMaster();
 
-    connect(m_onbusMaster, &OnBusMaster::errorOccurred, this, &MainWindow::threadErrorOccured);
-    connect(m_onbusMaster, &OnBusMaster::stateChanged, this, &MainWindow::threadStateChanged);
-    connect(m_onbusMaster, &OnBusMaster::finished, this, &MainWindow::threadFinished);
+    connect(m_onbusMaster, &OnBusMaster::errorOccurred, [this](OnBusDevice::Error) {
+        statusBar()->showMessage(m_onbusMaster->errorString(), 5000);
+    });
+
+    if (!m_onbusMaster)
+        statusBar()->showMessage(tr("Could not create OnBusMaster."), 5000);
+    else
+        connect(m_onbusMaster, &OnBusMaster::stateChanged, this, &MainWindow::onStateChanged);
 
     //UI - Actions
     connect(ui->actionSerial_RTU, SIGNAL(triggered()), this, SLOT(showSettingsModbusRTU()));
@@ -101,7 +106,7 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
     connect(ui->actionAbout,SIGNAL(triggered()),m_dlgAbout,SLOT(show()));
 
     //UI - connections
-    connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::toggleConnection);
+    connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::changedConnect);
     connect(ui->actionOpenLogFile, SIGNAL(triggered()), this, SLOT(openLogFile()));
     connect(ui->actionLoad_Session, SIGNAL(triggered(bool)), this, SLOT(loadSession()));
     connect(ui->actionSave_Session, SIGNAL(triggered(bool)), this, SLOT(saveSession()));
@@ -172,13 +177,12 @@ void MainWindow::callCreateForm()
     ui->splitter->addWidget(page);
 
     connect(m_onbusMaster, &OnBusMaster::stateChanged, page, &WdgTest::slModbusStateChanged);
-    connect(this, &MainWindow::sgResponse, page, &WdgTest::slResponse);
 
     connect(menuBox, SIGNAL(pageChanged(QString,int)), page, SLOT(init(QString,int)));
 
     ui->actionConnect->setEnabled(true);
     ui->actionOpenFile->setEnabled(false);
-    threadStateChanged(OnBusMaster::UnconnectedState);
+    onStateChanged(OnBusMaster::UnconnectedState);
     updateStatusBar();
 }
 
@@ -229,7 +233,7 @@ void MainWindow::loadSession()
 {
     QString fName;
 
-     fName = QFileDialog::getOpenFileName(this,
+    fName = QFileDialog::getOpenFileName(this,
                                           tr("Load Configuraion File"),
                                           "",
                                           tr("Configuraion Files (*.db);;All Files (*.*)"));
@@ -263,7 +267,7 @@ void MainWindow::saveSession()
 
 void MainWindow::slShowAddress()
 {
-    DlgAddress page(m_core);
+    DlgRegister page(m_core);
     page.exec();
 }
 
@@ -305,8 +309,8 @@ void MainWindow::slShowPairRegisterPage()
 
 void MainWindow::closeEvent(QCloseEvent *e)
 {
-    if (m_onbusMaster->isRunning())
-        m_onbusMaster->closePort();
+//    if (m_onbusMaster->isRunning())
+//        m_onbusMaster->closePort();
 
     switch (m_policy) {
     case AcceptCloseEvents:
@@ -320,18 +324,59 @@ void MainWindow::closeEvent(QCloseEvent *e)
     }
 }
 
-OnBusMaster *MainWindow::createOnBusMaster()
+OnBusMaster* MainWindow::createOnBusMaster()
 {
-    if (m_onbusMaster)
-        return m_onbusMaster;
+    if (m_onbusMaster) {
+        m_onbusMaster->disconnectDevice();
+        delete m_onbusMaster;
+        m_onbusMaster = nullptr;
+    }
 
-    return new OnBusMaster();
+    return new OnBusRtuSerialMaster(this);
 }
 
-void MainWindow::closeOnBusMaster()
+void MainWindow::changedConnect(bool value) //Connect - Disconnect
 {
-    if (m_onbusMaster)
-        m_onbusMaster->closePort();
+    if (value) {
+        if (m_onbusMaster)
+            QTimer::singleShot(30, this, SLOT(onbusConnect()));
+    }
+    else {
+        if (m_onbusMaster)
+            m_onbusMaster->disconnectDevice();
+
+        emit sgProcessValue(0);
+    }
+//    m_modbus->resetCounters();
+//    refreshView();
+}
+
+void MainWindow::onbusConnect() //Modbus connect - RTU/TCP
+{
+    if (!m_onbusMaster)
+        return;
+
+    if (m_onbusMaster->state() != OnBusDevice::ConnectedState) {
+        m_onbusMaster->setConnectionParameter(OnBusDevice::SerialPortNameParameter,
+                                         m_commSettings->serialPortName());
+        m_onbusMaster->setConnectionParameter(OnBusDevice::SerialParityParameter,
+                                         m_commSettings->parity());
+        m_onbusMaster->setConnectionParameter(OnBusDevice::SerialBaudRateParameter,
+                                         m_commSettings->baud());
+        m_onbusMaster->setConnectionParameter(OnBusDevice::SerialDataBitsParameter,
+                                         m_commSettings->dataBits());
+        m_onbusMaster->setConnectionParameter(OnBusDevice::SerialStopBitsParameter,
+                                         m_commSettings->stopBits());
+
+        m_onbusMaster->setTimeout(m_commSettings->timeOut().toInt());
+        m_onbusMaster->setNumberOfRetries(3);
+
+        if (!m_onbusMaster->connectDevice())
+            statusBar()->showMessage(tr("Connect failed: ") + m_onbusMaster->errorString(), 5000);
+    }
+    else if (m_onbusMaster->state() == OnBusMaster::ConnectedState) {
+        QTimer::singleShot(500, m_onbusMaster, SLOT(close()));
+    }
 }
 
 QString MainWindow::dbFile() const
@@ -418,11 +463,8 @@ void MainWindow::threadErrorOccured(OnBusMaster::Error error)
         m_lblResponseTraffic->setText(tr("OnBusMaster::ConfigurationError"));
         QMessageBox::critical(this, tr("Serial Port"), tr("Port Configuration Is Invalid!"));
         break;
-    case OnBusMaster::WriteTimeoutError:
-        m_lblResponseTraffic->setText(tr("OnBusMaster::WriteTimeoutError"));
-        break;
-    case OnBusMaster::ReadTimeoutError:
-        m_lblResponseTraffic->setText(tr("OnBusMaster::ReadTimeoutError"));
+    case OnBusMaster::TimeoutError:
+        m_lblResponseTraffic->setText(tr("OnBusMaster::TimeoutError"));
         break;
     case OnBusMaster::ProtocolError:
         m_lblResponseTraffic->setText(tr("OnBusMaster::ProtocolError"));
@@ -438,7 +480,7 @@ void MainWindow::threadErrorOccured(OnBusMaster::Error error)
     }
 }
 
-void MainWindow::threadStateChanged(OnBusMaster::State state)
+void MainWindow::onStateChanged(OnBusMaster::State state)
 {
     bool connected = (state != OnBusMaster::UnconnectedState);
 
@@ -474,27 +516,6 @@ void MainWindow::setControlsEnabled(bool enable)
     ui->actionLoad_Session->setEnabled(enable);
     ui->actionSave_Session->setEnabled(enable);
     ui->actionOpenLogFile->setEnabled(enable);
-}
-
-void MainWindow::toggleConnection(bool status) //Connect - Disconnect
-{
-    Q_UNUSED(status)
-    if (!m_onbusMaster)
-        return;
-
-    setControlsEnabled(false);
-    m_lblRequestTraffic->clear();
-
-    if (m_onbusMaster->state() == OnBusMaster::UnconnectedState) {
-
-        if (m_onbusMaster->setConfig(m_commSettings->serialPortName(), QSerialPort::Baud115200,
-                                QSerialPort::NoParity, QSerialPort::Data8, QSerialPort::OneStop, 10)) {
-            m_onbusMaster->openPort();
-        }
-    }
-    else if (m_onbusMaster->state() == OnBusMaster::ConnectedState) {
-        QTimer::singleShot(500, m_onbusMaster, SLOT(closePort()));
-    }
 }
 
 void MainWindow::threadFinished()

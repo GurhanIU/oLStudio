@@ -5,10 +5,11 @@
 #include <QSlider>
 //#include <QDebug>
 
-#include "objects/modbusdataentries.h"
+#include "onbus/onbusdataunit.h"
 
 class QSqlError;
 class QSlider;
+class OnBusMaster;
 
 namespace Ui {
 class WdgTest;
@@ -44,8 +45,10 @@ private:
     Ui::WdgTest *ui;
     EDesignerFormEditorInterface *m_core;
     EditableSqlModel *m_model = nullptr;
+    OnBusMaster *m_busMaster;
 
     ModbusDataEntries *m_dataEntries;
+    OnBusDataUnit m_watchEntries;
 
     int typeIdx, aliasIdx, deviceIdx, unitIdx;
     int registerIdx, registerTypeIdx;
@@ -56,7 +59,6 @@ private:
 
     bool m_dataChanged = false;
 
-    void updatePage();
     void initModel(int pageId);
     void collectEntries();
 signals:

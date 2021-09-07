@@ -26,8 +26,9 @@ public:
     EBusData *addEntry(int registerId, int address, EData *data, int precision = 0, const QString &alias = QString());
 
     bool hasEntry(int address);
-    bool hasEntry(EBusData *e);
+    bool hasEntry(OnBusData *e);
     void deleteEntry(int address);
+    void deleteAll();
 
     QModbusDataUnit::RegisterType registerType() const;
     void setRegisterType(const QModbusDataUnit::RegisterType &registerType);
@@ -37,7 +38,7 @@ public:
     QList<EntryList *> collectSubEntries();
     QList<EntryList *> collectSubEntries(const EntryList &entries);
 
-    void readByEntry(EBusData *e);
+    void readByEntry(OnBusData *e);
     void readByEntry(int address);
 
     void writeByEntry(EBusData *e);

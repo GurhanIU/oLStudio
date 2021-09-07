@@ -4,10 +4,11 @@
 #include "abstractformeditor.h"
 #include "widgetfactory_p.h"
 #include "objects/editablesqlmodel.h"
-#include "objects/edata.h"
-#include "objects/ebusdata.h"
-#include "objects/modbusdata.h"
-#include "objects/modbusdataentries.h"
+#include "onbus/ondata.h"
+#include "onbus/onbusdata.h"
+#include "onbus/onbusmaster.h"
+//#include "objects/modbusdata.h"
+//#include "objects/modbusdataentries.h"
 
 #include "responsepacket.h"
 
@@ -28,9 +29,45 @@
 
 #include <QDebug>
 
+namespace Testing {
+QByteArray prepareRequest(const QList<OnBusData*> dataset)
+{
+    if (dataset.isEmpty())
+            return QByteArray();
+    QByteArray packet;
+    packet.append((char)0xAA);
+    packet.append((char)0x01); // Paket tipine gore faklilik gosterecek
+    packet.append((char)(dataset.count()*5 + 1)); // 5: Her veri icin 4byte adres bilgisi ve 1 adet boyut bilgisi; 1: toplam veri adedi
+    packet.append((char)dataset.count()); // toplam veri adedi
+
+    char chkSum = (char)dataset.count();
+
+    foreach (OnBusData *data, dataset ) {
+        QMetaType t(data->dataType());
+        packet.append((char)data->address());
+        packet.append((char)(data->address() >> 8));
+        packet.append((char)(data->address() >> 16));
+        packet.append((char)(data->address() >> 24));
+        packet.append((char)t.sizeOf());
+
+        chkSum += (char)data->address();
+        chkSum += (char)(data->address() >> 8);
+        chkSum += (char)(data->address() >> 16);
+        chkSum += (char)(data->address() >> 24);
+        chkSum += (char)t.sizeOf();
+    }
+
+    packet.append(chkSum);
+    packet.append((char) 0x55);
+
+    return packet;
+}
+} // namespace Testing
+
 WdgTest::WdgTest(EDesignerFormEditorInterface *core, OnBusMaster *onBusMaster, QWidget *parent) :
     QWidget(parent),
     m_core(core),
+    m_busMaster(onBusMaster),
     ui(new Ui::WdgTest)
 {
     ui->setupUi(this);
@@ -54,7 +91,8 @@ WdgTest::WdgTest(EDesignerFormEditorInterface *core, OnBusMaster *onBusMaster, Q
     ui->tableView->horizontalHeader()->setSectionsMovable(true);
     ui->tableView->resizeColumnsToContents();
 
-    m_dataEntries = new ModbusDataEntries(onBusMaster, this);
+//    m_dataEntries = new ModbusDataEntries(onBusMaster, this);
+    m_watchEntries.setRegisterType(OnBusDataUnit::Read);
 }
 
 WdgTest::~WdgTest()
@@ -78,7 +116,6 @@ void WdgTest::init(const QString &title, int id)
 
     initModel(id);
     collectEntries();
-    updatePage();
 }
 
 void WdgTest::initModel(int pageId)
@@ -87,7 +124,7 @@ void WdgTest::initModel(int pageId)
         delete m_model;
 
     m_model = new EditableSqlModel(QSqlDatabase::database(m_core->dbFile()), ui->tableView);
-    m_model->setQuery(QString("SELECT r.ID AS ID, r.NAME, vt.ID AS VTYPE, vt.DESCRIPTION, r.ADDRESS, r.PRECISION, '---' AS ACTUAL, u.UNIT \
+    m_model->setQuery(QString("SELECT r.ID AS ID, r.NAME, vt.ID AS VTYPE, vt.DESCRIPTION, r.ADDRESS, r.PRECISION, '---' AS ACTUAL, u.UNIT, mf.FUNCTION \
                               FROM REGISTER AS r \
                               LEFT JOIN VARIANT_TYPE as vt ON r.VARIANT_ID = vt.ID \
                               LEFT JOIN MODBUS_FUNCTION as mf ON r.MODBUS_FUNC_ID = mf.ID \
@@ -103,8 +140,11 @@ void WdgTest::initModel(int pageId)
 
 void WdgTest::collectEntries()
 {
-    if (m_dataEntries)
-        m_dataEntries->deleteAll();
+    ui->grpToolBox->setTitle(m_title);
+    m_watchEntries.clear();
+    qDeleteAll(ui->scrollAreaWidgetContents->children());
+
+    ui->tableView->setModel(m_model);
 
     int rIdIdx = m_model->record().indexOf("rID");
     int rNameIdx = m_model->record().indexOf("NAME");
@@ -114,36 +154,7 @@ void WdgTest::collectEntries()
     int uUnitIdx = m_model->record().indexOf("UNIT");
     int vTypeIdx = m_model->record().indexOf("VTYPE");
     int vNameIdx = m_model->record().indexOf("DESCRIPTION");
-
-    for(int modelIdx = 0; modelIdx < m_model->rowCount(); modelIdx++) {
-        bool ok = false;
-        const uint actual = m_model->record(modelIdx).value(rActualIdx).toInt();
-        QString name = m_model->record(modelIdx).value(rNameIdx).toString();
-        int registerId = m_model->record(modelIdx).value(rIdIdx).toInt();
-        uint address = m_model->record(modelIdx).value(rAddressIdx).toString().toUInt(&ok, 16);
-        int precision = m_model->record(modelIdx).value(rPrecisionIdx).toInt();
-        QVariant actualValue = m_model->record(modelIdx).value(rActualIdx);
-
-        const QMetaType::Type type = (QMetaType::Type)m_model->record(modelIdx).value(vTypeIdx).toUInt();
-        QVariant value = m_model->record(modelIdx).value(vTypeIdx);
-
-        EData *data = EDataUtil::create(type, value);
-
-        if (data)
-            m_dataEntries->addEntry(registerId, address, data, precision, name);
-    }
-}
-
-void WdgTest::updatePage()
-{
-    ui->grpToolBox->setTitle(m_title);
-
-    qDeleteAll(ui->scrollAreaWidgetContents->children());
-
-    ui->tableView->setModel(m_model);
-//    ui->tableView->setColumnHidden(objectTypeNameIdx, true);
-//    ui->tableView->setColumnHidden(keyListIdx, true);
-//    ui->tableView->setColumnHidden(valueListIdx, true);
+    int mFunctionIdx = m_model->record().indexOf("FUNCTION");
 
     WidgetFactory *wFactory = new WidgetFactory(m_core, this);
 
@@ -152,7 +163,27 @@ void WdgTest::updatePage()
     verticalLayout->setContentsMargins(80, 0, 80, 0);
     verticalLayout->setSpacing(6);
 
-    foreach (EBusData *entry, m_dataEntries->allEntries()) {
+    for(int modelIdx = 0; modelIdx < m_model->rowCount(); modelIdx++) {
+        bool ok = false;
+
+        QString name = m_model->record(modelIdx).value(rNameIdx).toString();
+        int registerId = m_model->record(modelIdx).value(rIdIdx).toInt();
+        uint address = m_model->record(modelIdx).value(rAddressIdx).toString().toUInt(&ok, 16);
+        int precision = m_model->record(modelIdx).value(rPrecisionIdx).toInt();
+        QStringList functionList = m_model->record(modelIdx).value(mFunctionIdx).toString().split(";");
+
+        const QMetaType::Type type = (QMetaType::Type)m_model->record(modelIdx).value(vTypeIdx).toUInt();
+
+        OnData *data = OnDataUtil::create(type);
+        OnBusData *entry = nullptr;
+        if (data) {
+            entry = new OnBusData(registerId, address, data, precision, name);
+            m_watchEntries.addData(entry);
+        }
+        else {
+            continue;
+        }
+
         QGroupBox *groupBox = new QGroupBox(this);
         groupBox->setMinimumSize(QSize(0, 75));
         groupBox->setMaximumSize(QSize(16777215, 75));
@@ -163,40 +194,66 @@ void WdgTest::updatePage()
         hLytGroup->setContentsMargins(5,5,5,5);
         hLytGroup->setSpacing(3);
 
-        QWidget *w;
-        w = wFactory->createWidget("QLabel", groupBox);
+        foreach (QString fc, functionList) {
+            bool isOk = false;
 
-        if (w == 0) {
-            qDebug() << "hata";
-            return;
+            uint iFc = fc.toUInt(&isOk, 16);
+
+            if (!isOk)
+                continue;
+
+            QWidget *w = nullptr;
+            OnBusRequest::FunctionCode code = (OnBusRequest::FunctionCode)fc.toUInt(&isOk, 16);
+
+            switch (code) {
+            case OnBusRequest::WriteMemory: {
+                hLytGroup->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum));
+                QLineEdit *editBox = new QLineEdit(groupBox);
+                QPushButton *btnSend = new QPushButton(tr("Gönder"),groupBox);
+
+                w = qobject_cast<QWidget*>(editBox);
+                hLytGroup->addWidget(w, 0, Qt::AlignRight);
+                hLytGroup->addWidget(btnSend, 0, Qt::AlignRight);
+
+                entry->setMode((OnBusData::Mode) entry->mode() | OnBusData::WriteOnly);
+            }   break;
+            case OnBusRequest::ReadConfig: {
+                QLabel *lblActual = new QLabel("---", groupBox);
+
+                connect(entry, &OnBusData::dataChanged, lblActual, [lblActual](OnData *data) {
+                   lblActual->setText(data->toString());
+                });
+
+                w = qobject_cast<QWidget*>(lblActual);
+                hLytGroup->addWidget(w, 0, Qt::AlignLeft);
+
+                QLabel *lblUnit = new QLabel(groupBox);
+                lblUnit->setMinimumSize(QSize(50, 0));
+                lblUnit->setText(m_model->record(modelIdx).value(uUnitIdx).toString());
+                lblUnit->setStyleSheet("QLabel{border: 1px solid transparent;}");
+                lblUnit->setFont(QFont("Tahoma", 9));
+
+                hLytGroup->addWidget(lblUnit, 0, Qt::AlignLeft);
+                hLytGroup->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum));
+
+                entry->setMode((OnBusData::Mode) entry->mode() | OnBusData::ReadOnly);
+            }    break;
+            default:
+                break;
+            }
+
+            if (w == 0) {
+                qDebug() << "hata";
+                continue;
+            }
+
+            w->setMinimumWidth(50);
+            w->setMinimumHeight(25);
+            w->setFont(QFont("Tahoma", 10));
         }
 
-        w->setMinimumHeight(23);
-        w->setFont(QFont("Tahoma", 10));        
-
-        QLabel *lblActual = qobject_cast<QLabel*>(w);
-        lblActual->setMinimumWidth(50);
-        lblActual->setText("---");
-
-        connect(entry, &EBusData::dataChanged, lblActual, [lblActual](EData *data) {
-           lblActual->setText(data->toString());
-        });
-
-        QLabel *lblUnit = new QLabel(groupBox);
-        lblUnit->setMinimumSize(QSize(50, 0));
-        lblUnit->setText("-");
-        lblUnit->setStyleSheet("QLabel{border: 1px solid transparent;}");
-        lblUnit->setFont(QFont("Tahoma", 9));
-
-        hLytGroup->addWidget(w, 0, Qt::AlignLeft);
-        hLytGroup->addWidget(lblUnit, 0, Qt::AlignLeft);
-
-        hLytGroup->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum));
         verticalLayout->addWidget(groupBox);
     }
-
-    m_dataEntries->prepareRequest();
-    ui->lblRequest->setText(tr("Request: #%1#").arg(QString(m_dataEntries->requestPacket().toHex(':').toUpper())));
 
     ui->tableView->viewport()->update();
     ui->tableView->setVisible(false);
@@ -215,6 +272,8 @@ void WdgTest::updatePage()
     ui->lblRequest->show();
     ui->lblResponse->show();
     ui->scrollArea->show();
+
+    ui->lblRequest->setText(tr("Request: #%1#").arg(QString(Testing::prepareRequest(m_watchEntries.dataset()).toHex(':').toUpper())));
 }
 
 void WdgTest::actualValueChanged(int value)
@@ -231,30 +290,29 @@ void WdgTest::actualValueChanged(QString value)
 
 void WdgTest::on_btnStart_clicked()
 {
-//    m_dataEntries->openCloseRequest();
-    m_dataEntries->sendRequest();
+    m_busMaster->sendReadRequest(m_watchEntries);
 }
 
 void WdgTest::on_btnStop_clicked()
 {
-    m_dataEntries->openCloseRequest();
+//    m_busMaster->sendCommandRequest(OnBusRequest::Stop);
 }
 
 void WdgTest::slResponse(const QByteArray &response)
 {
-    ui->lblResponse->setText(tr("Response: #%1#").arg(QString(response.toHex(':').toUpper())));
+//    ui->lblResponse->setText(tr("Response: #%1#").arg(QString(response.toHex(':').toUpper())));
 
-    if (response.at(3) == m_dataEntries->allEntries().count()) {
+//    if (response.at(3) == m_dataEntries->allEntries().count()) {
 
-        int offset = 4;
-        foreach (EBusData *entry, m_dataEntries->allEntries()) {
-            const int len = QMetaType(entry->dataType()).sizeOf();
-            const QByteArray ba = response.mid(offset, len);
-            entry->changeData(entry->dataType(), (void*)ba.data());
-            offset += len;
-//                qDebug() << entry->alias() << entry->data() << QString(ba.toHex(':').toUpper()) << len;
-        }
-    }
-    else
-        ui->lblResponse->setText(tr("Response: Packet Size Incorrect!"));
+//        int offset = 4;
+//        foreach (OnBusData *entry, m_dataEntries->allEntries()) {
+//            const int len = QMetaType(entry->dataType()).sizeOf();
+//            const QByteArray ba = response.mid(offset, len);
+//            entry->changeData(entry->dataType(), (void*)ba.data());
+//            offset += len;
+////                qDebug() << entry->alias() << entry->data() << QString(ba.toHex(':').toUpper()) << len;
+//        }
+//    }
+//    else
+//        ui->lblResponse->setText(tr("Response: Packet Size Incorrect!"));
 }

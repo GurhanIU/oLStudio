@@ -6,8 +6,7 @@
 #include <QMdiArea>
 #include <QVariant>
 
-#include "onbusmaster.h"
-#include "responsepacket.h"
+#include "onbusrtuserialmaster.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -85,20 +84,21 @@ private:
     void updateStatusBar();
 
 private slots:
-    void closeOnBusMaster();
+    void changedConnect(bool value);
     void showSettingsModbusRTU();
 
     void showSettings();
-
-    void toggleConnection(bool status);
 
     void openLogFile();
 
     void loadSession();
     void saveSession();
 
+    void onStateChanged(OnBusMaster::State);
+    void onbusConnect();
+
     void threadErrorOccured(OnBusMaster::Error);
-    void threadStateChanged(OnBusMaster::State);
+//    void threadStateChanged(OnBusMaster::State);
 
     void slShowAddress();
     void slShowParameter();

@@ -44,7 +44,7 @@ public:
     int size();
     int count();
 
-    static QByteArray prepareRequest(const EntryList &entryList);
+    static QByteArray prepareRequest(Function code, const EntryList &entryList);
     void prepareRequest();
     QByteArray requestPacket() const;
     void openCloseRequest();
