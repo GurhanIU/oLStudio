@@ -20,7 +20,6 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QMessageBox>
-#include <QModbusDevice>
 #include <QSql>
 #include <QSqlError>
 #include <QSqlField>
@@ -103,7 +102,7 @@ WdgTest::~WdgTest()
 
 void WdgTest::slModbusStateChanged(int state)
 {
-    bool connected = (state == QModbusDevice::ConnectedState);
+    bool connected = (state == OnBusDevice::ConnectedState);
 
     ui->btnStart->setEnabled(connected);
     ui->btnStop->setEnabled(connected);
