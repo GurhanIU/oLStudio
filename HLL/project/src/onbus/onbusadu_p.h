@@ -53,7 +53,8 @@ public:
         quint32 lrc = 0;
         while (len--)
             lrc += *data++;
-        return -(quint8(lrc));
+        return (quint8(lrc));
+//        return -(quint8(lrc));
     }
 
     inline static quint16 calculateCRC(const char *data, qint32 len)
@@ -82,14 +83,17 @@ public:
     inline static QByteArray create(Type type, quint8 count, const OnBusPdu &pdu, char delimiter = '\n') {
         QByteArray result;
         QDataStream out(&result, QIODevice::WriteOnly);
-        out << (count * 3 +1) << count << pdu;
+        quint8 crc  = quint8( pdu.dataCount() + calculateLRC(pdu.data(), pdu.data().size()));
+        out << pdu;
 
         if (type == Ascii) {
             out << calculateLRC(result, result.size());
             return ":" + result.toHex() + "\r" + delimiter;
         } else {
-            out << calculateCRC(result, result.size());
+//            out << calculateCRC(result, result.size());
+            out << crc;
         }
+        out << pdu.LastByte;
         return result;
     }
 

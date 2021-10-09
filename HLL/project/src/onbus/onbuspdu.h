@@ -43,6 +43,8 @@ public:
                 && (m_data.size() < 255);
     }
 
+    static const quint8 FirstByte = 0xAA;
+    static const quint8 LastByte = 0x55;
     static const quint8 ExceptionByte = 0x80;
     ExceptionCode exception() const {
         if (!m_data.size() || isException())
@@ -54,6 +56,8 @@ public:
 
     quint16 size() const { return dataSize() + 1; }
     quint16 dataSize() const { return quint16(m_data.size()); }
+
+    void setDataCount(quint8 count) { m_count = count; }
     quint8 dataCount() const { return m_count; }
 
     FunctionCode functionCode() const {

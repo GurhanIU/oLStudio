@@ -294,7 +294,11 @@ void WdgTest::on_btnStart_clicked()
 
 void WdgTest::on_btnStop_clicked()
 {
-//    m_busMaster->sendCommandRequest(OnBusRequest::Stop);
+    OnBusDataUnit unit(OnBusDataUnit::Command);
+    unit.addData(new OnBusData(0, 0, new OnDataShort((short)0), 0, QString("1")));
+    unit.addData(new OnBusData(0, 0, new OnDataShort((short)0), 0, QString("2")));
+    unit.addData(new OnBusData(0, 0, new OnDataShort((short)0), 0, QString("3")));
+    m_busMaster->sendCommandRequest(unit);
 }
 
 void WdgTest::slResponse(const QByteArray &response)

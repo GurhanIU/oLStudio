@@ -113,9 +113,11 @@ OnBusRequest OnBusMasterPrivate::createReadRequest(const OnBusDataUnit &data) co
         return OnBusRequest();
 
     switch (data.registerType()) {
-    case OnBusDataUnit::Read:
-        return OnBusRequest(OnBusRequest::ReadConfig, data.values());
-    break;
+    case OnBusDataUnit::Read: {
+        OnBusRequest req(OnBusRequest::ReadConfig, data.values());
+        req.setDataCount(data.count());
+        return req;
+    }   break;
 
     default:
         break;
@@ -142,8 +144,10 @@ OnBusRequest OnBusMasterPrivate::createCommandRequest(const OnBusDataUnit &data)
 {
     switch (data.registerType()) {
     case OnBusDataUnit::Command: {
-        if (data.count() == 1) {
-            return OnBusRequest(OnBusRequest::SetCommand, data.values());
+        if (data.count() == 3) {
+            OnBusRequest req(OnBusRequest::SetCommand, data.values());
+            req.setDataCount(data.count());
+            return req;
         }
     }   break;
 

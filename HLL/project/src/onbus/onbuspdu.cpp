@@ -96,8 +96,12 @@ QDataStream &operator<<(QDataStream &stream, const OnBusPdu &pdu)
 {
     if (pdu.isException())
         stream << static_cast<quint8> (pdu.functionCode() | OnBusPdu::ExceptionByte);
-    else
+    else {
+        stream << static_cast<quint8> (pdu.FirstByte);
         stream << static_cast<quint8> (pdu.functionCode());
+        stream << static_cast<quint8> (pdu.dataCount() * 5 +1);
+        stream << static_cast<quint8> (pdu.dataCount());
+    }
     if (!pdu.data().isEmpty())
         stream.writeRawData(pdu.data().constData(), pdu.data().size());
 
