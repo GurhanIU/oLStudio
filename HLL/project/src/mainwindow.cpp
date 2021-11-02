@@ -309,19 +309,27 @@ void MainWindow::slShowPairRegisterPage()
 
 void MainWindow::closeEvent(QCloseEvent *e)
 {
-//    if (m_onbusMaster->isRunning())
-//        m_onbusMaster->closePort();
-
     switch (m_policy) {
     case AcceptCloseEvents:
         QMainWindow::closeEvent(e);
         break;
     case EmitCloseEventSignal:
+        disconnectAndDelete();
         QSqlDatabase::database(m_dbFile).close();
         QSqlDatabase::removeDatabase(m_dbFile);
         emit closeEventReceived(e);
         break;
     }
+}
+
+void MainWindow::disconnectAndDelete()
+{
+    if (!m_onbusMaster)
+        return;
+    m_onbusMaster->disconnectDevice();
+    m_onbusMaster->disconnect();
+    delete m_onbusMaster;
+    m_onbusMaster = nullptr;
 }
 
 OnBusMaster* MainWindow::createOnBusMaster()
@@ -369,7 +377,7 @@ void MainWindow::onbusConnect() //Modbus connect - RTU/TCP
                                          m_commSettings->stopBits());
 
         m_onbusMaster->setTimeout(m_commSettings->timeOut().toInt());
-        m_onbusMaster->setNumberOfRetries(3);
+        m_onbusMaster->setNumberOfRetries(0);
 
         if (!m_onbusMaster->connectDevice())
             statusBar()->showMessage(tr("Connect failed: ") + m_onbusMaster->errorString(), 5000);

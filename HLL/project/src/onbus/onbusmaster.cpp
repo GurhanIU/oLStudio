@@ -17,19 +17,19 @@ OnBusMaster::~OnBusMaster()
 OnBusReply *OnBusMaster::sendReadRequest(const OnBusDataUnit &read)
 {
     Q_D(OnBusMaster);
-    return d->sendRequest(d->createReadRequest(read), &read);
+    return d->sendRequest(d->createRequest(read), &read);
 }
 
 OnBusReply *OnBusMaster::sendWriteRequest(const OnBusDataUnit &write)
 {
     Q_D(OnBusMaster);
-    return d->sendRequest(d->createWriteRequest(write), &write);
+    return d->sendRequest(d->createRequest(write), &write);
 }
 
 OnBusReply *OnBusMaster::sendCommandRequest(const OnBusDataUnit &command)
 {
     Q_D(OnBusMaster);
-    return d->sendRequest(d->createCommandRequest(command), &command);
+    return d->sendRequest(d->createRequest(command), &command);
 }
 
 OnBusReply *OnBusMaster::sendRawRequest(const OnBusRequest &request)
@@ -107,7 +107,7 @@ OnBusReply *OnBusMasterPrivate::sendRequest(const OnBusRequest &request, const O
     return enqueueRequest(request, OnBusDataUnit(), OnBusReply::Raw);
 }
 
-OnBusRequest OnBusMasterPrivate::createReadRequest(const OnBusDataUnit &data) const
+OnBusRequest OnBusMasterPrivate::createRequest(const OnBusDataUnit &data) const
 {
     if (!data.isValid())
         return OnBusRequest();
@@ -119,39 +119,23 @@ OnBusRequest OnBusMasterPrivate::createReadRequest(const OnBusDataUnit &data) co
         return req;
     }   break;
 
-    default:
-        break;
-    }
-    return OnBusRequest();
-}
-
-OnBusRequest OnBusMasterPrivate::createWriteRequest(const OnBusDataUnit &data) const
-{
-    switch (data.registerType()) {
     case OnBusDataUnit::Write: {
         if (data.count() == 1) {
-            return OnBusRequest(OnBusRequest::WriteMemory, data.values());
+            OnBusRequest req(OnBusRequest::WriteMemory, data.values());
+            req.setDataCount(data.count());
+            return req;
         }
     }   break;
 
-    default:    // fall through on purpose
-        break;
-    }
-    return OnBusRequest();
-}
-
-OnBusRequest OnBusMasterPrivate::createCommandRequest(const OnBusDataUnit &data) const
-{
-    switch (data.registerType()) {
     case OnBusDataUnit::Command: {
-        if (data.count() == 3) {
+        if (data.count() == 1) {
             OnBusRequest req(OnBusRequest::SetCommand, data.values());
             req.setDataCount(data.count());
             return req;
         }
     }   break;
 
-    default:    // fall through on purpose
+    default:
         break;
     }
     return OnBusRequest();

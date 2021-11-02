@@ -8,7 +8,8 @@ class OnBusSerialAdu
 public:
     enum Type {
         Ascii,
-        Rtu
+        Rtu,
+        Onbus
     };
 
     inline OnBusSerialAdu(Type type, const QByteArray &data)
@@ -16,11 +17,17 @@ public:
     {
         if (m_type == Ascii)
             m_data = QByteArray::fromHex(m_data.mid(1, m_data.size() -3));
+        else if (m_type == Onbus)
+            m_data = m_data.mid(1, m_data.size() -2);
+
+        qDebug() << m_data.toHex(':').toUpper();
     }
 
     inline int size() const {
         if (m_type == Ascii)
-            return m_data.size() -1; // one byte , LRC
+            return m_data.size() -1; // one byte, LRC
+        else if (m_type == Onbus)
+            return m_data.size() -1; // one byte, LRC
         return m_data.size() -2; // two byte, CRC
     }
     inline QByteArray data() const { return m_data.left(size()); }
@@ -30,6 +37,8 @@ public:
 
     inline OnBusPdu pdu() const {
         Q_ASSERT_X(!m_data.isEmpty(), "OnBusAdu::pdu()", "Empty ADU.");
+        if (m_type == Onbus)
+            return OnBusPdu(OnBusPdu::FunctionCode(m_data.at(0)), m_data.mid(1, size() -2));
         return OnBusPdu(OnBusPdu::FunctionCode(m_data.at(1)), m_data.mid(2, size() -2));
     }
 
@@ -80,10 +89,44 @@ public:
         return (crc >> 8) | (crc << 8); // swap bytes
     }
 
-    inline static QByteArray create(Type type, quint8 count, const OnBusPdu &pdu, char delimiter = '\n') {
+    inline static QByteArray createRead(Type type, const OnBusPdu &pdu, char delimiter = '\n') {
         QByteArray result;
         QDataStream out(&result, QIODevice::WriteOnly);
-        quint8 crc  = quint8( pdu.dataCount() + calculateLRC(pdu.data(), pdu.data().size()));
+//        quint8 crc  = quint8(pdu.dataCount() + calculateLRC(pdu.data(), pdu.data().size()));
+        out << pdu;
+
+        if (type == Ascii) {
+            out << calculateLRC(result, result.size());
+            return ":" + result.toHex() + "\r" + delimiter;
+        } else {
+            out << calculateCRC(result, result.size());
+//            out << crc;
+        }
+        out << pdu.LastByte;
+        return result;
+    }
+
+    inline static QByteArray createWrite(Type type, const OnBusPdu &pdu, char delimiter = '\n') {
+        QByteArray result;
+        QDataStream out(&result, QIODevice::WriteOnly);
+        quint8 crc  = quint8(pdu.dataCount() + calculateLRC(pdu.data(), pdu.data().size()));
+        out << pdu;
+
+        if (type == Ascii) {
+            out << calculateLRC(result, result.size());
+            return ":" + result.toHex() + "\r" + delimiter;
+        } else {
+//            out << calculateCRC(result, result.size());
+            out << crc;
+        }
+        out << pdu.LastByte;
+        return result;
+    }
+
+    inline static QByteArray createCommand(Type type, const OnBusPdu &pdu, char delimiter = '\n') {
+        QByteArray result;
+        QDataStream out(&result, QIODevice::WriteOnly);
+        quint8 crc  = quint8(pdu.dataCount() + calculateLRC(pdu.data(), pdu.data().size()));
         out << pdu;
 
         if (type == Ascii) {

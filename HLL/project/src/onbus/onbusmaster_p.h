@@ -13,9 +13,10 @@ class OnBusMasterPrivate : public OnBusDevicePrivate
 public:
     OnBusReply *sendRequest(const OnBusRequest &request, const OnBusDataUnit *const unit);
 
-    OnBusRequest createReadRequest(const OnBusDataUnit &data) const;
-    OnBusRequest createWriteRequest(const OnBusDataUnit &data) const;
-    OnBusRequest createCommandRequest(const OnBusDataUnit &data) const;
+    OnBusRequest createRequest(const OnBusDataUnit &data) const;
+//    OnBusRequest createReadRequest(const OnBusDataUnit &data) const;
+//    OnBusRequest createWriteRequest(const OnBusDataUnit &data) const;
+//    OnBusRequest createCommandRequest(const OnBusDataUnit &data) const;
 
     bool processResponse(const OnBusResponse &response, OnBusDataUnit *data);
 

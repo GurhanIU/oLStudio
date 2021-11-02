@@ -7,6 +7,7 @@
 #include <QQueue>
 #include <QTimer>
 #include <QtSerialPort>
+#include <QDebug>
 
 #include "onbusrtuserialmaster.h"
 #include "onbusadu_p.h"
@@ -59,14 +60,32 @@ public:
     void onReadyRead()
     {
         m_responseBuffer += m_serialPort->read(m_serialPort->bytesAvailable());
-        qCDebug(QT_MODBUS_LOW) << "(RTU client) Response buffer:" << m_responseBuffer.toHex();
+        qDebug() << "(RTU client) Response buffer:" << m_responseBuffer.toHex(':').toUpper();
+//        qCDebug(QT_MODBUS_LOW) << "(RTU client) Response buffer:" << m_responseBuffer.toHex();
 
         if (m_responseBuffer.size() < 2) {
-            qCDebug(QT_MODBUS) << "(RTU client) Modbus ADU not complete";
+            qCDebug(QT_MODBUS) << "(RTU client) ADU not complete";
             return;
         }
 
-        const OnBusSerialAdu tmpAdu(OnBusSerialAdu::Rtu, m_responseBuffer);
+        const int idxOfStart = m_responseBuffer.indexOf(OnBusPdu::Start);
+
+        if (idxOfStart == -1) { // Pakette AA yoksa
+            qCDebug(QT_MODBUS) << "(RTU client) ADU not start";
+            m_responseBuffer.clear();
+            return;
+        }
+
+        if (idxOfStart > 0) // Bulunan ilk AA paketin ilk elemani degil ise AA'ya kadar olan kisim paketten silinir
+            m_responseBuffer = m_responseBuffer.mid(idxOfStart);
+
+        if (m_responseBuffer.size() < 2) {
+            qCDebug(QT_MODBUS) << "(RTU client) ADU not complete";
+            return;
+        }
+
+        //----------------------------------------------------------------------
+        const OnBusSerialAdu tmpAdu(OnBusSerialAdu::Onbus, m_responseBuffer);
         int pduSizeWithoutFcode = OnBusResponse::calculateDataSize(tmpAdu.pdu());
         if (pduSizeWithoutFcode < 0) {
             // wait for more data
@@ -88,20 +107,21 @@ public:
 
         // Special case for Diagnostics:ReturnQueryData. The response has no
         // length indicator and is just a simple echo of what we have send.
-//        if (tmpAdu.pdu().functionCode() == OnBusPdu::Diagnostics) {
-//            const OnBusResponse response = tmpAdu.pdu();
-//            if (canMatchRequestAndResponse(response, tmpAdu.serverAddress())) {
-//                quint16 subCode = 0xffff;
-//                response.decodeData(&subCode);
-//                if (subCode == Diagnostics::ReturnQueryData) {
-//                    if (response.data() != current.requestPdu.data())
-//                        return; // echo does not match request yet
-//                    aduSize = 2 + response.dataSize() + 2;
-//                    if (tmpAdu.rawSize() < aduSize)
-//                        return; // echo matches, probably checksum missing
-//                }
-//            }
-//        }
+        /* Kapattim
+          if (tmpAdu.pdu().functionCode() == OnBusPdu::Diagnostics) {
+            const OnBusResponse response = tmpAdu.pdu();
+            if (canMatchRequestAndResponse(response, tmpAdu.serverAddress())) {
+                quint16 subCode = 0xffff;
+                response.decodeData(&subCode);
+                if (subCode == Diagnostics::ReturnQueryData) {
+                    if (response.data() != current.requestPdu.data())
+                        return; // echo does not match request yet
+                    aduSize = 2 + response.dataSize() + 2;
+                    if (tmpAdu.rawSize() < aduSize)
+                        return; // echo matches, probably checksum missing
+                }
+            }
+        }*/
 
         const OnBusSerialAdu adu(OnBusSerialAdu::Rtu, m_responseBuffer.left(aduSize));
         m_responseBuffer.remove(0, aduSize);
@@ -311,7 +331,20 @@ public:
 
         auto reply = new OnBusReply(type, q);
         QueueElement element(reply, request, unit, m_numberOfRetries + 1);
-        element.adu = OnBusSerialAdu::create(OnBusSerialAdu::Rtu, unit.count(), request);
+
+        switch (unit.registerType()) {
+        case OnBusDataUnit::Read:
+            element.adu = OnBusSerialAdu::createRead(OnBusSerialAdu::Rtu, request);
+            break;
+        case OnBusDataUnit::Write:
+            element.adu = OnBusSerialAdu::createWrite(OnBusSerialAdu::Rtu, request);
+            break;
+        case OnBusDataUnit::Command:
+            element.adu = OnBusSerialAdu::createCommand(OnBusSerialAdu::Rtu, request);
+        default:
+            break;
+        }
+
         m_queue.enqueue(element);
 
         scheduleNextRequest(m_interFrameDelayMilliseconds);

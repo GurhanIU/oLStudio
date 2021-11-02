@@ -83,6 +83,8 @@ private:
     void setControlsEnabled(bool enable);
     void updateStatusBar();
 
+    void disconnectAndDelete();
+
 private slots:
     void changedConnect(bool value);
     void showSettingsModbusRTU();

@@ -35,7 +35,7 @@ QByteArray prepareRequest(const QList<OnBusData*> dataset)
             return QByteArray();
     QByteArray packet;
     packet.append((char)0xAA);
-    packet.append((char)0x01); // Paket tipine gore faklilik gosterecek
+    packet.append((char)OnBusRequest::ReadConfig); // Paket tipine gore faklilik gosterecek
     packet.append((char)(dataset.count()*5 + 1)); // 5: Her veri icin 4byte adres bilgisi ve 1 adet boyut bilgisi; 1: toplam veri adedi
     packet.append((char)dataset.count()); // toplam veri adedi
 
@@ -208,7 +208,21 @@ void WdgTest::collectEntries()
             case OnBusRequest::WriteMemory: {
                 hLytGroup->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum));
                 QLineEdit *editBox = new QLineEdit(groupBox);
-                QPushButton *btnSend = new QPushButton(tr("Gönder"),groupBox);
+                editBox->setValidator( new QIntValidator(0, 100, this) );
+                QPushButton *btnSend = new QPushButton(tr("Gönder"), groupBox);
+                btnSend->setDisabled(true);
+
+                connect(editBox, &QLineEdit::textEdited, btnSend, [btnSend](const QString &text) {
+                    btnSend->setDisabled(text.trimmed().isEmpty());
+                });
+
+                connect(btnSend, &QPushButton::clicked, editBox, [=]() {
+                    entry->setData(OnDataUtil::create(entry->dataType(), QVariant(editBox->text())));
+
+                    OnBusDataUnit unit(OnBusDataUnit::Write);
+                    unit.addData(entry);
+                    this->m_busMaster->sendWriteRequest(unit);
+                });
 
                 w = qobject_cast<QWidget*>(editBox);
                 hLytGroup->addWidget(w, 0, Qt::AlignRight);
@@ -295,9 +309,7 @@ void WdgTest::on_btnStart_clicked()
 void WdgTest::on_btnStop_clicked()
 {
     OnBusDataUnit unit(OnBusDataUnit::Command);
-    unit.addData(new OnBusData(0, 0, new OnDataShort((short)0), 0, QString("1")));
-    unit.addData(new OnBusData(0, 0, new OnDataShort((short)0), 0, QString("2")));
-    unit.addData(new OnBusData(0, 0, new OnDataShort((short)0), 0, QString("3")));
+    unit.addData(new OnBusData(0, 0, new OnDataUChar((uchar)0), 0, QString("1")));
     m_busMaster->sendCommandRequest(unit);
 }
 

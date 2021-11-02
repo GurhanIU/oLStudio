@@ -17,7 +17,7 @@ public:
     virtual char toChar(bool *ok) { *ok = false; }
     virtual uchar toUChar(bool *ok) { *ok = false; }
     virtual short toShort(bool *ok) { *ok = false; }
-    virtual ushort toUshort(bool *ok) { *ok = false; }
+    virtual ushort toUShort(bool *ok) { *ok = false; }
     virtual long toLong(bool *ok) { *ok = false; }
     virtual ulong toULong(bool *ok) { *ok = false; }
     virtual qlonglong toLongLong(bool *ok) { *ok = false; }

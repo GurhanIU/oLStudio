@@ -23,16 +23,16 @@ public:
     };
 
     enum FunctionCode {
-        WriteMemory = 0x00,
-        ReadConfig = 0x01,
-        WatchVars = 0x02, // PC icin gereksiz
+        Invalid = 0x00,
+        WriteMemory = 0x01,
+        ReadConfig = 0x02,
         SetCommand = 0x03,
         UndefinedFunctionCode  = 0x100
     };
 
     enum CommandCode {
-        Start = 0x00,
-        Stop = 0x00,
+        Start = 0xAA,
+        Stop = 0x55,
     };
 
     OnBusPdu() = default;

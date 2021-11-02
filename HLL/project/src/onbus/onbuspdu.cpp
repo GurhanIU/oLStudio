@@ -135,7 +135,6 @@ int OnBusRequest::calculateDataSize(const OnBusRequest &request)
             size = minimum + quint8(request.data().at(minimum - 1)) /*byte count*/;
         break;
     case OnBusPdu::ReadConfig:
-    case OnBusPdu::WatchVars:
         minimum -= 2; // first 2 payload payload bytes
         if (request.dataSize() >= minimum)
             size = minimum + quint8(request.data().at(minimum - 1)) /*byte count*/;
@@ -184,7 +183,6 @@ int OnBusResponse::calculateDataSize(const OnBusResponse &response)
     switch (response.functionCode()) {
     case OnBusResponse::ReadConfig:
     case OnBusResponse::WriteMemory:
-    case OnBusResponse::WatchVars:
     case OnBusResponse::SetCommand:
         if (response.dataSize() >= 1)
             size = 1 /*byte count*/ + quint8(response.data().at(0)) /*actual bytes*/;

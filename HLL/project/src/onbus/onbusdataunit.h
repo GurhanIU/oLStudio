@@ -24,8 +24,8 @@ class OnBusDataUnit
 public:
     enum RegisterType {
         Invalid,
-        Read, // Read
         Write, // Write
+        Read, // Read
         Command  // Command
     };
     OnBusDataUnit() = default;
@@ -61,7 +61,7 @@ public:
 
 
     QByteArray values() const;
-//    QVector<quint8> values() const;
+    QVector<quint8> values();
 
     bool isValid() const { return m_type != Invalid && m_dataset.size() > 0; }
 
