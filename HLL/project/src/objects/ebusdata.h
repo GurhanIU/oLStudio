@@ -20,10 +20,10 @@ public:
     };
     Q_DECLARE_FLAGS(Mode, ModeFlag)
 
-    explicit EBusData(int registerId, int startAddress, EData *data, int precision = 0, const QString &alias = QString(), QObject *parent = nullptr)
-        : EBusData(QModbusDataUnit::Invalid, registerId, startAddress, data, precision, alias, parent) { qDebug() << "ModbusData: qint8"; }
+    explicit EBusData(int registerId, int startAddress, EData *data, int precision = 0, const QString &alias = QString(), const QString &unit = QString(), QObject *parent = nullptr)
+        : EBusData(QModbusDataUnit::Invalid, registerId, startAddress, data, precision, alias, unit, parent) { qDebug() << "ModbusData: qint8"; }
 
-    explicit EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, EData *data, int precision, const QString &alias, QObject *parent = nullptr);
+    explicit EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, EData *data, int precision, const QString &alias, const QString &unit, QObject *parent = nullptr);
 
     virtual ~EBusData() { /*qDebug() << "Siliniyor:" << this;*/ }
 
@@ -41,6 +41,8 @@ public:
     void setPrecision(uint newPrecision) { m_precision = newPrecision; }
 
     short tempValue() const { return m_tempValue; }
+
+    //    template<typename T>
     void setTempValue(ushort tempValue) { m_tempValue = tempValue; }
 
     /******************************************************/
@@ -68,6 +70,9 @@ public:
                                 &&  m_startAddress != -1; }
 
 
+    const QString &unit() const;
+    void setUnit(const QString &unit);
+
 protected:
     virtual bool init();
 
@@ -84,6 +89,7 @@ private:
     ushort m_tempValue;
     uint m_precision = 0;
     QString m_alias;
+    QString m_unit;
 
     inline void setMode(const Mode &mode) { m_mode = mode; }
     inline void setRegisterType(const QModbusDataUnit::RegisterType &registerType) { m_registerType = registerType; }

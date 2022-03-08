@@ -649,36 +649,47 @@ void MainWindow::slCollectRegisters()
 
     QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
 
-    qry.prepare("SELECT r.ID, r.NAME, r.ADDRESS, r.PRECISION, vt.ID AS VTYPE FROM REGISTER AS r \
+    qry.prepare("SELECT r.ID AS rID, r.NAME, r.ADDRESS, r.PRECISION, u.UNIT, vt.ID AS VTYPE \
+                FROM REGISTER AS r \
                 LEFT JOIN VARIANT_TYPE as vt ON r.VARIANT_ID = vt.ID \
-                GROUP BY r.ID ORDER BY r.ADDRESS;");
+                LEFT JOIN MODBUS_FUNCTION AS mf ON r.MODBUS_FUNC_ID = mf.ID \
+                LEFT JOIN UNITS as u ON  r.UNIT_ID = u.ID \
+                LEFT JOIN REGISTER_OPTION  as ro ON r.ID = ro.REGISTER_ID \
+               GROUP BY r.ID ORDER BY r.ADDRESS;");
 
     if (!qry.exec()) {
+        QMessageBox::critical(this, tr("Unable to initialize Database"),
+                                    tr("Error initializing database: %1").arg(qry.lastError().text()));
         qDebug() << qry.lastError() << qry.lastQuery();
         return;
     }
 
-    int rIdIdx = qry.record().indexOf("ID");
+    int rIdIdx = qry.record().indexOf("rID");
     int rNameIdx = qry.record().indexOf("NAME");
     int rAddressIdx = qry.record().indexOf("ADDRESS");
     int rPrecisonIdx = qry.record().indexOf("PRECISION");
+    int uUnitIdx = qry.record().indexOf("UNIT");
     int vTypeIdx = qry.record().indexOf("VTYPE");
 
 //    EDataFactory dataFactory;
 //    dataFactory.RegisterAllTypes();
 
     while (qry.next()) {
-        const QMetaType::Type type = (QMetaType::Type)qry.value(vTypeIdx).toUInt();
+        const QMetaType::Type typeId = static_cast<QMetaType::Type>(qry.value(vTypeIdx).toUInt());
+        const QVariant::Type vtypeId = static_cast<QVariant::Type>(qry.value(vTypeIdx).toUInt());
 
 //        std::unique_ptr<EData> ee = dataFactory.Create(type);
 //        ee->setData(qry.value(pActualIdx));
 //        ee->print();
 
+        QVariant v(vtypeId);
+
         EBusData *entry = m_modbusEntries->addEntry(qry.value(rIdIdx).toInt(),
-                                                           qry.value(rAddressIdx).toInt(),
-                                                           EDataUtil::create(type, 0),
-                                                           qry.value(rPrecisonIdx).toInt(),
-                                                           qry.value(rNameIdx).toString());
+                                                    qry.value(rAddressIdx).toInt(),
+                                                    EDataUtil::create(typeId, 0),
+                                                    qry.value(rPrecisonIdx).toInt(),
+                                                    qry.value(rNameIdx).toString(),
+                                                    qry.value(uUnitIdx).toString());
 
         if (entry)
             connect(entry, &EBusData::dataChanged, this, static_cast<void (MainWindow::*)(EData*)>(&MainWindow::slActualChanged));

@@ -31,19 +31,6 @@ WdgTest::WdgTest(EDesignerFormEditorInterface *core, EBusDataEntries *dataEntrie
 {
     ui->setupUi(this);
 
-    ui->tableView->setAlternatingRowColors(true);
-    ui->tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->tableView->setSelectionMode(QAbstractItemView::SingleSelection);
-    ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
-    ui->tableView->verticalHeader()->setVisible(true);
-    ui->tableView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    ui->tableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    ui->tableView->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-    ui->tableView->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
-    ui->tableView->horizontalHeader()->setSectionsMovable(true);
-    ui->tableView->resizeColumnsToContents();
-
     initAddToolBox();
 }
 
@@ -77,58 +64,29 @@ void WdgTest::slUpdateModel()
 {
     m_entryList.clear();
 
-    EditableSqlModel *model = new EditableSqlModel(QSqlDatabase::database(m_core->dbFile()), ui->tableView);
-    model->setQuery(QString("SELECT r.ID AS rID, r.NAME, r.ADDRESS, r.PRECISION, u.UNIT \
-                                FROM REGISTER AS r \
-                                LEFT JOIN MODBUS_FUNCTION AS mf ON r.MODBUS_FUNC_ID = mf.ID \
-                                LEFT JOIN UNITS as u ON  r.UNIT_ID = u.ID \
-                                LEFT JOIN REGISTER_OPTION  as ro ON r.ID = ro.REGISTER_ID \
-                               GROUP BY r.ID ORDER BY r.ADDRESS;"),
-                    QSqlDatabase::database(m_core->dbFile()));
-
-    if (model->lastError().isValid()) {
-        QMessageBox::critical(this, tr("Unable to initialize Database"),
-                                    tr("Error initializing database: %1").arg(model->lastError().text()));
-        return;
-    }
-
-    int rNameIdx = model->record().indexOf("NAME");
-    int rAddressIdx = model->record().indexOf("ADDRESS");
-    int rPrecisionIdx = model->record().indexOf("PRECISION");
-    int uUnitIdx = model->record().indexOf("UNIT");
-
-    ui->tableView->setModel(model);
     ui->tableWidget->setRowCount(0);
 
-    for (int modelIdx = 0; modelIdx < model->rowCount(); modelIdx++) {
-        const QString caption = model->record(modelIdx).value(rNameIdx).toString();
-        const int modbusAddress = model->record(modelIdx).value(rAddressIdx).toInt();
-        const int precision = model->record(modelIdx).value(rPrecisionIdx).toInt();
-        const QString unit = model->record(modelIdx).value(uUnitIdx).toString();
-
-        qDebug() << caption;
-
-        EBusData *busData = m_dataEntries->entry(modbusAddress);
-
+    int row = 0;
+    foreach (EBusData *busData, m_dataEntries->allEntries()) {
         if (busData)
             m_entryList.append(busData);
         else
             continue;
 
-        ui->tableWidget->insertRow(modelIdx);
-        QTableWidgetItem *itemName = new QTableWidgetItem(caption);
-        QTableWidgetItem *itemCurrent = new QTableWidgetItem(QString("- %1").arg(unit));
+        ui->tableWidget->insertRow(row);
+        QTableWidgetItem *itemName = new QTableWidgetItem(busData->alias());
+        QTableWidgetItem *itemCurrent = new QTableWidgetItem(QString("- %1").arg(busData->unit()));
         QTableWidgetItem *itemTest = new QTableWidgetItem("");
 
         QString sFactor = "1";
-        int factor = sFactor.leftJustified(precision+1, QChar('0')).toInt();
+        int factor = sFactor.leftJustified(busData->precision() +1, QChar('0')).toInt();
         double min = std::numeric_limits<double>::min(); //m_model->record(modelIdx).value(pMinimumIdx).toDouble();
         double max = std::numeric_limits<double>::max();//m_model->record(modelIdx).value(pMaximumIdx).toDouble();
 
         QLineEdit *edt = new QLineEdit;
-        edt->setProperty("address", QVariant(modbusAddress));
+        edt->setProperty("address", QVariant(busData->startAddress()));
 
-        QDoubleValidator *dblVal = new QDoubleValidator(min, max, precision, edt);
+        QDoubleValidator *dblVal = new QDoubleValidator(min, max, busData->precision(), edt);
         dblVal->setNotation(QDoubleValidator::StandardNotation);
         dblVal->setLocale(QLocale::C);
 
@@ -145,10 +103,20 @@ void WdgTest::slUpdateModel()
             else
                 ival = edt->text().toInt();
 
-            busData->changeData(ival);
+            qDebug() << sizeof(double);
+            qDebug() << sizeof(int);
+            qDebug() << sizeof(long);
+            qDebug() << sizeof(float);
+            qDebug() << sizeof(short);
+
+//            busData->setTempValue();
             itemTest->setText(QString::number(ival));
-            qDebug() << ival;
-//            this->m_dataEntries->writeTempValueByEntry(busData);
+            qDebug() << busData->alias()
+                     << ival
+                     << busData->dataType()
+                     << busData->sizeOfDataType()
+                     << busData->dataTypeName();
+//            m_dataEntries->writeTempValueByEntry(busData);
         });
 
 //        connect(edt, &CustomLineEdit::validatedValue, this, &WdgTest::actualValueChanged);
@@ -161,31 +129,12 @@ void WdgTest::slUpdateModel()
         edt->setText("");
         edt->setValidator(dblVal);
 
-        ui->tableWidget->setItem(modelIdx, 0, itemName);
-        ui->tableWidget->setItem(modelIdx, 1, itemCurrent);
-        ui->tableWidget->setCellWidget(modelIdx, 2, edt);
-        ui->tableWidget->setItem(modelIdx, 3, itemTest);
-        ui->tableWidget->setRowHeight(modelIdx, 30);
+        ui->tableWidget->setItem(row, 0, itemName);
+        ui->tableWidget->setItem(row, 1, itemCurrent);
+        ui->tableWidget->setCellWidget(row, 2, edt);
+        ui->tableWidget->setItem(row, 3, itemTest);
+        ui->tableWidget->setRowHeight(row++, 25);
     }
-
-    ui->tableView->viewport()->update();
-    ui->tableView->setVisible(false);
-    QRect vporig = ui->tableView->viewport()->geometry();
-    QRect vpnew = vporig;
-    vpnew.setWidth(std::numeric_limits<int>::max());
-    ui->tableView->viewport()->setGeometry(vpnew);
-    ui->tableView->resizeColumnsToContents();
-    ui->tableView->resizeRowsToContents();
-    ui->tableView->viewport()->setGeometry(vporig);
-    ui->tableView->setVisible(true);
-    ui->tableView->setColumnWidth(rNameIdx, 300);
-    ui->tableView->setCurrentIndex(model->index(0, 0));
-
-    #ifdef QT_DEBUG
-    ui->tableView->show();
-    #else
-    ui->tableView->hide();
-    #endif
 }
 
 void WdgTest::initAddToolBox()
@@ -239,7 +188,7 @@ void WdgTest::on_btnAdd_clicked()
     int unit =  m_addModel->relationModel(unitIdx)->index(ui->cmbAddUnit->currentIndex(), m_addModel->relationModel(unitIdx)->fieldIndex("ID")).data().toInt();
 
     if (name.isEmpty() ||
-        !QMetaType::isValid(variantTpye))
+        variantTpye == QMetaType::UnknownType)
         return;
 
     QSqlField fModbusFunc("MODBUS_FUNC_ID", QVariant::Int);

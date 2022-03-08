@@ -24,7 +24,7 @@ public:
     void setDevice(int device);
 
     EBusData *entry(int address);
-    EBusData *addEntry(int registerId, int address, EData *data, int precision = 0, const QString &alias = QString());
+    EBusData *addEntry(int registerId, int address, EData *data, int precision = 0, const QString &alias = QString(), const QString &unit = QString());
 
     bool hasEntry(int address);
     bool hasEntry(EBusData *e);

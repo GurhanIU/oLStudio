@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1245</width>
+    <width>1175</width>
     <height>490</height>
    </rect>
   </property>
@@ -14,9 +14,7 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QGroupBox{
-
-}
+   <string notr="true">QTableWidget QLineEdit{border: none;}
 /*QTableView {
 	background-color: white;
 	show-decoration-selected: 0;
@@ -98,20 +96,6 @@ QTableView::item:selected:!active
       <property name="handleWidth">
        <number>3</number>
       </property>
-      <widget class="QTableView" name="tableView">
-       <property name="styleSheet">
-        <string notr="true">QHeaderView::section {
-        background-color: rgb(227, 227, 227);
-
-    padding-left: 4px;
-    border: 1px solid lightgrey;
-
-        font: 10pt &quot;MS Shell Dlg 2&quot;;
-    }
-
-    *{outline: none; }</string>
-       </property>
-      </widget>
       <widget class="QWidget" name="verticalLayoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="rightMargin">
@@ -499,7 +483,7 @@ QTableView::item:selected:!active
        </size>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tabTable">
        <attribute name="title">

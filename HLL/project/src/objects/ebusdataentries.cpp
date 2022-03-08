@@ -45,11 +45,11 @@ EBusDataEntries::EntryList EBusDataEntries::allEntries()
  * @param alias
  * @return Parent object has not address return true, else return false
  */
-EBusData * EBusDataEntries::addEntry(int registerId, int address, EData *data, int precision, const QString &alias)
+EBusData * EBusDataEntries::addEntry(int registerId, int address, EData *data, int precision, const QString &alias, const QString &unit)
 {
     EBusData *entry;
     if (!hasEntry(address)) {
-        entry = new EBusData(m_registerType, registerId, address, data, precision, alias, this);
+        entry = new EBusData(m_registerType, registerId, address, data, precision, alias, unit, this);
         entry->setAlias(alias);
 
         connect(entry, &EBusData::sgMessage, this, &EBusDataEntries::sgMessage);
