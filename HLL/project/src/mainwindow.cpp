@@ -1,5 +1,5 @@
-#include "MainWindow.h"
-#include "ui_MainWindow.h"
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
 
 #include <QApplication>
 #include <QDesktopServices>
@@ -683,6 +683,7 @@ void MainWindow::slCollectRegisters()
 //        ee->print();
 
         QVariant v(vtypeId);
+        qDebug() << v.typeName() << v.type() << v.isValid();
 
         EBusData *entry = m_modbusEntries->addEntry(qry.value(rIdIdx).toInt(),
                                                     qry.value(rAddressIdx).toInt(),

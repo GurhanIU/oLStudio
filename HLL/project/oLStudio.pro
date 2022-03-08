@@ -79,7 +79,7 @@ SOURCES += \
 #    src/etreewidget/widgetboxcategorylistview.cpp \
 #    src/etreewidget/widgetboxtreewidget.cpp \
     src/main.cpp \
-    src/MainWindow.cpp \
+    src/mainwindow.cpp \
     src/modbuscommsettings.cpp \
     src/objects/deviceevent.cpp \
     src/objects/ebusdata.cpp \
@@ -106,7 +106,7 @@ HEADERS += \ version.h \
     src/forms/settingsmodbusrtu.h \
     src/forms/settings.h \
     src/forms/about.h \
-    src/MainWindow.h \
+    src/mainwindow.h \
 #    src/etreewidget/abstractdnditem.h \
 #    src/etreewidget/abstractformeditor.h \
 #    src/etreewidget/abstractwidgetbox.h \
@@ -147,7 +147,7 @@ FORMS += \
     src/forms/dlgregister.ui \
     src/forms/settingsmodbusrtu.ui \
     src/forms/settings.ui \
-    src/MainWindow.ui \
+    src/mainwindow.ui \
     src/pages/WdgTest.ui
 
 RESOURCES += \
