@@ -75,8 +75,6 @@ void WdgTest::slModbusStateChanged(int state)
 
 void WdgTest::slUpdateModel()
 {
-    ui->grpToolBox->setTitle("OnLab");
-
     m_entryList.clear();
 
     EditableSqlModel *model = new EditableSqlModel(QSqlDatabase::database(m_core->dbFile()), ui->tableView);
@@ -183,7 +181,6 @@ void WdgTest::slUpdateModel()
     ui->tableView->setColumnWidth(rNameIdx, 300);
     ui->tableView->setCurrentIndex(model->index(0, 0));
 
-    ui->grpToolBox->show();
     #ifdef QT_DEBUG
     ui->tableView->show();
     #else
@@ -240,6 +237,10 @@ void WdgTest::on_btnAdd_clicked()
     int variantTpye = m_addModel->relationModel(variantTypeIdx)->index(ui->cmbAddVariantType->currentIndex(), m_addModel->relationModel(variantTypeIdx)->fieldIndex("ID")).data().toInt();
     int precision = ui->edtAddPrecision->text().trimmed().toInt();
     int unit =  m_addModel->relationModel(unitIdx)->index(ui->cmbAddUnit->currentIndex(), m_addModel->relationModel(unitIdx)->fieldIndex("ID")).data().toInt();
+
+    if (name.isEmpty() ||
+        !QMetaType::isValid(variantTpye))
+        return;
 
     QSqlField fModbusFunc("MODBUS_FUNC_ID", QVariant::Int);
     QSqlField fAddress("ADDRESS", QVariant::Int);
