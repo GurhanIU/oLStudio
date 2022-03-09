@@ -1,7 +1,9 @@
 #ifndef EDATA_H
 #define EDATA_H
 
-#include <qglobal.h>
+//#include <qglobal.h>
+#include <QObject>
+#include <QMetaType>
 #include <QDebug>
 
 class EData

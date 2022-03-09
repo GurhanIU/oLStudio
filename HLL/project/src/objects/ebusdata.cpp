@@ -1,16 +1,16 @@
 #include "ebusdata.h"
 
 EBusData::EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, EData *data, int precision, const QString &alias, const QString &unit, QObject *parent) :
+    QObject(parent),
     m_mode(ModeFlag::None),
-    m_dataType(data->type()),
     m_registerType(type),
+    m_dataType(data->type()),
     m_registerId(registerId),
-    m_startAddress(startAddress),
     m_data(data),
+    m_startAddress(startAddress),
     m_precision(precision),
     m_alias(alias),
-    m_unit(unit),
-    QObject(parent)
+    m_unit(unit)
 {
     setObjectName(QString::number(startAddress));
     init();

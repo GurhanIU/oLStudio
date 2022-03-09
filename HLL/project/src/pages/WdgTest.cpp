@@ -25,9 +25,9 @@
 
 WdgTest::WdgTest(EDesignerFormEditorInterface *core, EBusDataEntries *dataEntries, QWidget *parent) :
     QWidget(parent),
+    ui(new Ui::WdgTest),
     m_core(core),
-    m_dataEntries(dataEntries),
-    ui(new Ui::WdgTest)
+    m_dataEntries(dataEntries)
 {
     ui->setupUi(this);
 
@@ -42,7 +42,7 @@ WdgTest::~WdgTest()
 
 void WdgTest::slModbusStateChanged(int state)
 {
-    bool connected = (state == QModbusDevice::ConnectedState);
+//    bool connected = (state == QModbusDevice::ConnectedState);
 
     switch (state) {
     case QModbusDevice::UnconnectedState:
@@ -102,12 +102,6 @@ void WdgTest::slUpdateModel()
             }
             else
                 ival = edt->text().toInt();
-
-            qDebug() << sizeof(double);
-            qDebug() << sizeof(int);
-            qDebug() << sizeof(long);
-            qDebug() << sizeof(float);
-            qDebug() << sizeof(short);
 
 //            busData->setTempValue();
             itemTest->setText(QString::number(ival));
