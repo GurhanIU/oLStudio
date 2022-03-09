@@ -27,6 +27,8 @@ public:
 
     virtual ~EBusData() { /*qDebug() << "Siliniyor:" << this;*/ }
 
+    void init();
+
     Mode mode() const { return m_mode; }
 
     int registerId() const { return m_registerId; }
@@ -73,15 +75,13 @@ public:
     const QString &unit() const;
     void setUnit(const QString &unit);
 
-protected:
-    virtual bool init();
-
 private:
     Mode m_mode;
     QModbusDataUnit::RegisterType m_registerType;
     uint m_dataType = QMetaType::UnknownType; // QMetaType::Type bilgisi //    QMetaType::Type m_metaType;
     int m_registerId;
 
+    QVariant *m_vdata;
     EData *m_data;
     int m_startAddress  = -1; // adres listesinin ilk adresi olsun.
     QList<int> m_addressList;

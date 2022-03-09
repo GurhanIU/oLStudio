@@ -693,7 +693,8 @@ void MainWindow::slCollectRegisters()
                                                     qry.value(uUnitIdx).toString());
 
         if (entry)
-            connect(entry, &EBusData::dataChanged, this, static_cast<void (MainWindow::*)(EData*)>(&MainWindow::slActualChanged));
+            connect(entry, &EBusData::dataChanged,
+                    this, static_cast<void (MainWindow::*)(EData*)>(&MainWindow::slActualChanged));
     }
 
     emit sgRegistersCollected();

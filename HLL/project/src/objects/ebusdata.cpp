@@ -17,7 +17,7 @@ EBusData::EBusData(QModbusDataUnit::RegisterType type, int registerId, int start
 }
 
 
-bool EBusData::init()
+void EBusData::init()
 {
     if (objectName().isEmpty())
         setObjectName(QString::number(m_startAddress));
@@ -34,7 +34,7 @@ bool EBusData::init()
         m_addressList.append(m_startAddress + i);
     }
 
-    return true;
+    qDebug() << m_alias << byteCount << m_addressList;
 }
 
 const QString &EBusData::unit() const
