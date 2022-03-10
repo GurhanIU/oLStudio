@@ -1,6 +1,6 @@
 #include "ebusdata.h"
 
-EBusData::EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, EData *data, int precision, const QString &alias, const QString &unit, QObject *parent) :
+EBusData::EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, QVariant data, int precision, const QString &alias, const QString &unit, QObject *parent) :
     QObject(parent),
     m_mode(ModeFlag::None),
     m_registerType(type),
@@ -22,8 +22,6 @@ void EBusData::init()
     if (objectName().isEmpty())
         setObjectName(QString::number(m_startAddress));
 
-//    m_data = EDataUtil::create(dataType(), m_data.data());
-
     const quint8 byteCount = sizeOfDataType();
     const quint8 itemCount = byteCount / 2;
 
@@ -35,6 +33,16 @@ void EBusData::init()
     }
 
     qDebug() << m_alias << byteCount << m_addressList;
+}
+
+QVariant EBusData::tempValue() const
+{
+    return m_tempValue;
+}
+
+void EBusData::setTempValue(QVariant tempValue)
+{
+    m_tempValue = tempValue;
 }
 
 const QString &EBusData::unit() const
@@ -81,7 +89,7 @@ void EBusData::changeData(QMetaType::Type type, void *data)
     }
 }
 
-EData *EBusData::data() const
+QVariant EBusData::data() const
 {
     return m_data;
 }

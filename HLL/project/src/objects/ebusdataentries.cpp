@@ -253,7 +253,7 @@ void EBusDataEntries::writeTempValueByEntry(EBusData *e)
         return;
     if (e) {
         QModbusDataUnit writeUnit = QModbusDataUnit(m_registerType, e->startAddress(), 1);
-        writeUnit.setValue(0, e->tempValue());
+        writeUnit.setValue(0, e->tempValue()->toUshort());
 
         writeDataUnit(writeUnit);
     }

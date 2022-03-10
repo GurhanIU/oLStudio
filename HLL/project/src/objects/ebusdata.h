@@ -1,11 +1,11 @@
 #ifndef EBUSDATA_H
 #define EBUSDATA_H
 
-#include "edata.h"
-
 #include <QObject>
 #include <QMetaType>
 #include <QModbusDataUnit>
+#include <QVariant>
+#include <QDebug>
 
 class EBusData : public QObject
 {
@@ -20,10 +20,10 @@ public:
     };
     Q_DECLARE_FLAGS(Mode, ModeFlag)
 
-    explicit EBusData(int registerId, int startAddress, EData *data, int precision = 0, const QString &alias = QString(), const QString &unit = QString(), QObject *parent = nullptr)
+    explicit EBusData(int registerId, int startAddress, QVariant data, int precision = 0, const QString &alias = QString(), const QString &unit = QString(), QObject *parent = nullptr)
         : EBusData(QModbusDataUnit::Invalid, registerId, startAddress, data, precision, alias, unit, parent) { qDebug() << "ModbusData: qint8"; }
 
-    explicit EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, EData *data, int precision, const QString &alias, const QString &unit, QObject *parent = nullptr);
+    explicit EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, QVariant data, int precision, const QString &alias, const QString &unit, QObject *parent = nullptr);
 
     virtual ~EBusData() { /*qDebug() << "Siliniyor:" << this;*/ }
 
@@ -42,10 +42,8 @@ public:
     uint precision() const { return m_precision; }
     void setPrecision(uint newPrecision) { m_precision = newPrecision; }
 
-    short tempValue() const { return m_tempValue; }
-
-    //    template<typename T>
-    void setTempValue(ushort tempValue) { m_tempValue = tempValue; }
+    QVariant tempValue() const;
+    void setTempValue(QVariant tempValue);
 
     /******************************************************/
 
@@ -60,7 +58,7 @@ public:
     inline uint dataCount() const { return m_dataCount; }
     inline int sizeOfDataType() const { return QMetaType::sizeOf(m_dataType); } //Returns the size of the type in bytes
 
-    EData* data() const;
+    QVariant data() const;
     void setData(EData *newEData);
     void setData(const void *data);
 
@@ -68,8 +66,8 @@ public:
     QString toFormattedString() const;
 
     bool isValid() const { return   m_registerType != QModbusDataUnit::Invalid
-                                &&  m_dataType != QMetaType::UnknownType
-                                &&  m_startAddress != -1; }
+                                    && m_dataType != QMetaType::UnknownType
+                                    && m_startAddress != -1; }
 
 
     const QString &unit() const;
@@ -81,12 +79,11 @@ private:
     uint m_dataType = QMetaType::UnknownType; // QMetaType::Type bilgisi //    QMetaType::Type m_metaType;
     int m_registerId;
 
-    QVariant *m_vdata;
-    EData *m_data;
+    QVariant *m_data;
     int m_startAddress  = -1; // adres listesinin ilk adresi olsun.
     QList<int> m_addressList;
-    uint m_dataCount = 0;
-    ushort m_tempValue;
+    int m_dataCount = 0;
+    QVariant m_tempValue;
     uint m_precision = 0;
     QString m_alias;
     QString m_unit;
@@ -99,7 +96,7 @@ private:
     inline void setDataCount(uint newCount) { m_dataCount = newCount; }
 
 signals:
-    void dataChanged(EData *data);
+    void dataChanged(QVariant *data);
     void dataTypeChanged(QMetaType::Type type);
     void sgMessage(const QString &caption, const QString &text, int timeout = 0);
 };

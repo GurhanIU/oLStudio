@@ -16,14 +16,14 @@ public:
 
     virtual QMetaType::Type type() = 0;
 
-    virtual char toChar(bool *ok) { *ok = false; }
-    virtual uchar toUChar(bool *ok) { *ok = false; }
-    virtual short toShort(bool *ok) { *ok = false; }
-    virtual ushort toUshort(bool *ok) { *ok = false; }
-    virtual long toLong(bool *ok) { *ok = false; }
-    virtual ulong toULong(bool *ok) { *ok = false; }
-    virtual qlonglong toLongLong(bool *ok) { *ok = false; }
-    virtual qulonglong toULongLong(bool *ok) { *ok = false; }
+    virtual char toChar(bool *ok = nullptr) { *ok = false; }
+    virtual uchar toUChar(bool *ok = nullptr) { *ok = false; }
+    virtual short toShort(bool *ok = nullptr) { *ok = false; }
+    virtual ushort toUshort(bool *ok = nullptr) { *ok = false; }
+    virtual long toLong(bool *ok = nullptr) { *ok = false; }
+    virtual ulong toULong(bool *ok = nullptr) { *ok = false; }
+    virtual qlonglong toLongLong(bool *ok = nullptr) { *ok = false; }
+    virtual qulonglong toULongLong(bool *ok = nullptr) { *ok = false; }
 
     virtual QString toString() const = 0;
     virtual void print() = 0;

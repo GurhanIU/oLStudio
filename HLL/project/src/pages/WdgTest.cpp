@@ -74,7 +74,7 @@ void WdgTest::slUpdateModel()
             continue;
 
         ui->tableWidget->insertRow(row);
-        QTableWidgetItem *itemName = new QTableWidgetItem(busData->alias());
+        QTableWidgetItem *itemName = new QTableWidgetItem(QString("%1-%2").arg(busData->alias()).arg(busData->dataTypeName()));
         QTableWidgetItem *itemCurrent = new QTableWidgetItem(QString("- %1").arg(busData->unit()));
         QTableWidgetItem *itemTest = new QTableWidgetItem("");
 
@@ -91,7 +91,7 @@ void WdgTest::slUpdateModel()
         dblVal->setLocale(QLocale::C);
 
         connect(edt, &QLineEdit::returnPressed, m_dataEntries, [=] {
-            int ival = 0;
+            int ival = edt->text().toInt();
 
             if (factor > 1) {
                 double value = edt->text().toDouble();
@@ -100,16 +100,15 @@ void WdgTest::slUpdateModel()
                 if (value < 0)
                     ival = static_cast<int>((value * factor) - (float)(5.0 / factor));
             }
-            else
-                ival = edt->text().toInt();
 
-//            busData->setTempValue();
             itemTest->setText(QString::number(ival));
             qDebug() << busData->alias()
                      << ival
                      << busData->dataType()
                      << busData->sizeOfDataType()
                      << busData->dataTypeName();
+
+            busData->setTempValue(EDataUtil::create(busData->dataType(), QVariant(ival)));
 //            m_dataEntries->writeTempValueByEntry(busData);
         });
 
