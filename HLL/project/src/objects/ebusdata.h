@@ -51,16 +51,15 @@ public:
 
     inline int startAddress() const { return m_startAddress; }
 
-    template<typename T>
-    inline void changeData(const T &value);
-    void changeData(QMetaType::Type type, void *data);
+//    template<typename T>
+//    inline void changeData(const T &value);
+//    void changeData(QMetaType::Type type, void *data);
 
     inline uint dataCount() const { return m_dataCount; }
     inline int sizeOfDataType() const { return QMetaType::sizeOf(m_dataType); } //Returns the size of the type in bytes
 
     QVariant data() const;
-    void setData(EData *newEData);
-    void setData(const void *data);
+    void setData(QVariant data);
 
     QString toString() const;
     QString toFormattedString() const;
@@ -79,7 +78,7 @@ private:
     uint m_dataType = QMetaType::UnknownType; // QMetaType::Type bilgisi //    QMetaType::Type m_metaType;
     int m_registerId;
 
-    QVariant *m_data;
+    QVariant m_data;
     int m_startAddress  = -1; // adres listesinin ilk adresi olsun.
     QList<int> m_addressList;
     int m_dataCount = 0;
@@ -96,22 +95,22 @@ private:
     inline void setDataCount(uint newCount) { m_dataCount = newCount; }
 
 signals:
-    void dataChanged(QVariant *data);
+    void dataChanged(QVariant data);
     void dataTypeChanged(QMetaType::Type type);
     void sgMessage(const QString &caption, const QString &text, int timeout = 0);
 };
 
 // Sadece primitive turler kabul edilmeli. Pointer olmamali.
-template<typename T>
-inline void EBusData::changeData(const T &adata)
-{
-    const uint t = qMetaTypeId<T>();
+//template<typename T>
+//inline void EBusData::changeData(const T &adata)
+//{
+//    const uint t = qMetaTypeId<T>();
 
-    if (t == m_dataType && m_dataType != QMetaType::UnknownType ) {
-        m_data->setData((void*)&adata);
-        emit this->dataChanged(m_data);
-    }
-}
+//    if (t == m_dataType && m_dataType != QMetaType::UnknownType ) {
+//        m_data->setData((void*)&adata);
+//        emit this->dataChanged(m_data);
+//    }
+//}
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(EBusData::Mode)
 

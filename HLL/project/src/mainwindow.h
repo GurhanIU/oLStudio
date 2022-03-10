@@ -171,7 +171,6 @@ private slots:
     void slShowPageUtil();
     void slShowPairMenuPage();
     void slShowPairRegisterPage();
-    void slShowInputRegisterPage(bool);
 
     void slCollectRegisters();
 

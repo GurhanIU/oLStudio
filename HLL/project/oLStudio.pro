@@ -53,7 +53,6 @@ include(src/components/components.pri)
 
 SOURCES += \
     src/forms/dlgactualeventlog.cpp \
-    src/forms/dlgactualinputregister.cpp \
     src/forms/dlgalarmconfig.cpp \
     src/forms/dlgmenu.cpp \
     src/forms/dlgmodbusfunction.cpp \
@@ -92,7 +91,6 @@ SOURCES += \
 
 HEADERS += \ version.h \
     src/forms/dlgactualeventlog.h \
-    src/forms/dlgactualinputregister.h \
     src/forms/dlgalarmconfig.h \
     src/forms/dlgmenu.h \
     src/forms/dlgmodbusfunction.h \
@@ -133,7 +131,6 @@ HEADERS += \ version.h \
 
 FORMS += \
     src/forms/dlgactualeventlog.ui \
-    src/forms/dlgactualinputregister.ui \
     src/forms/dlgalarmconfig.ui \
     src/forms/dlgmenu.ui \
     src/forms/about.ui \

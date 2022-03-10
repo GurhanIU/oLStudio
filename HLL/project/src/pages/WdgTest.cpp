@@ -108,7 +108,7 @@ void WdgTest::slUpdateModel()
                      << busData->sizeOfDataType()
                      << busData->dataTypeName();
 
-            busData->setTempValue(EDataUtil::create(busData->dataType(), QVariant(ival)));
+//            busData->setTempValue(EDataUtil::create(busData->dataType(), QVariant(ival)));
 //            m_dataEntries->writeTempValueByEntry(busData);
         });
 

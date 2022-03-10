@@ -4,7 +4,7 @@ EBusData::EBusData(QModbusDataUnit::RegisterType type, int registerId, int start
     QObject(parent),
     m_mode(ModeFlag::None),
     m_registerType(type),
-    m_dataType(data->type()),
+    m_dataType(data.type()),
     m_registerId(registerId),
     m_data(data),
     m_startAddress(startAddress),
@@ -66,28 +66,19 @@ bool EBusData::setDataType(uint type)
     return false;
 }
 
-void EBusData::setData(EData *newEData)
+void EBusData::setData(QVariant data)
 {
-    if (m_data)
-        delete m_data;
-    m_data = newEData;
-    setDataType(newEData->type());
+    m_data = data;
     emit dataChanged(m_data);
 }
 
-void EBusData::setData(const void *data)
-{
-    if (m_dataType != QMetaType::UnknownType )
-        setData(EDataUtil::create(dataType(), data));
-}
-
-void EBusData::changeData(QMetaType::Type type, void *data)
-{
-    if (type == dataType() && m_dataType != QMetaType::UnknownType ) {
-        m_data->setData(data);
-        emit dataChanged(m_data);
-    }
-}
+//void EBusData::changeData(QMetaType::Type type, void *data)
+//{
+//    if (type == dataType() && m_dataType != QMetaType::UnknownType ) {
+//        m_data = data;
+//        emit dataChanged(m_data);
+//    }
+//}
 
 QVariant EBusData::data() const
 {
@@ -96,14 +87,14 @@ QVariant EBusData::data() const
 
 QString EBusData::toString() const
 {
-    return m_data->toString();
+    return m_data.toString();
 }
 
 QString EBusData::toFormattedString() const
 {
-    if (!m_data->isValid())
+    if (!m_data.isValid())
         return "NoNe";
-    QString formatted = m_data->toString();
+    QString formatted = m_data.toString();
     if (m_precision > 0) {
         if (m_precision >= formatted.length())
             formatted.push_front(QChar('0'));

@@ -29,7 +29,6 @@
 #include "forms/about.h"
 #include "forms/settingsmodbusrtu.h"
 #include "forms/settings.h"
-#include "forms/dlgactualinputregister.h"
 #include "forms/dlgpersistenteventlog.h"
 #include "modbuscommsettings.h"
 #include "infobar.h"
@@ -237,7 +236,6 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
     connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::changedConnect);
     connect(ui->actionWriteToDevice, SIGNAL(triggered()), this, SLOT(slWriteAllToDevice()));
     connect(ui->actionReadFromDevice, SIGNAL(triggered()), this,SLOT(slReadAllFromDevice()));
-    connect(ui->actionScan, &QAction::triggered, this, &MainWindow::slShowInputRegisterPage);
     connect(ui->actionPersistentEventLog, &QAction::triggered, this, &MainWindow::slShowEventLogPage);
     connect(ui->actionFactoryCalibration, &QAction::triggered, this, &MainWindow::slShowFactoryCalibrationPage);
     connect(ui->actionLoad_Session, SIGNAL(triggered(bool)), this, SLOT(loadSession()));
@@ -492,26 +490,6 @@ void MainWindow::slShowPairRegisterPage()
 {
     DlgPairRegisterPage page(m_core);
     page.exec();
-}
-
-void MainWindow::slShowInputRegisterPage(bool)
-{
-    static bool ilk = false;
-    static DlgActualInputRegister page(m_core, m_modbus);
-
-    if (!ilk){
-//        page.setParent(this);
-        ilk = true;
-
-        connect(&page, &DlgActualInputRegister::sgVisibilityChanged, ui->actionScan, &QAction::setChecked);
-        connect(&page, &DlgActualInputRegister::sgMessage, this, &MainWindow::slUpdateStatusBar);
-        connect(m_modbusCommSettings, &ModbusCommSettings::sgScanRateChanged, &page, &DlgActualInputRegister::slChangeScanRate);
-    }
-
-    if(page.isVisible())
-        page.close();
-    else
-        page.show();
 }
 
 void MainWindow::slShowEventLogPage()

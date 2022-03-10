@@ -45,7 +45,7 @@ EBusDataEntries::EntryList EBusDataEntries::allEntries()
  * @param alias
  * @return Parent object has not address return true, else return false
  */
-EBusData * EBusDataEntries::addEntry(int registerId, int address, EData *data, int precision, const QString &alias, const QString &unit)
+EBusData * EBusDataEntries::addEntry(int registerId, int address, QVariant data, int precision, const QString &alias, const QString &unit)
 {
     EBusData *entry;
     if (!hasEntry(address)) {
@@ -152,32 +152,32 @@ void EBusDataEntries::readReady()
                 switch (dType) {
                 case QMetaType::Char: {
                     const qint8 val = static_cast<qint8>(unit.value(i));
-                    busData->changeData(val);
+                    busData->setData(val);
                 } break;
                 case QMetaType::UChar: {
                     const quint8 val = static_cast<quint8>(unit.value(i));
-                    busData->changeData(val);
+                    busData->setData(val);
                 } break;
 
                 case QMetaType::Short: {
                     const qint16 val = static_cast<qint16>(unit.value(i));
-                    busData->changeData(val);
+                    busData->setData(val);
                 } break;
 
                 case QMetaType::UShort: {
                     const quint16 val = static_cast<quint16>(unit.value(i));
-                    busData->changeData(val);
+                    busData->setData(val);
                 } break;
 
                 case QMetaType::Long: {
                     const long val = ((long)unit.value(i) << 16) | (unit.value(i+1));
-                    busData->changeData(val);
+                    busData->setData(val);
                     i++;
                 } break;
 
                 case QMetaType::ULong: {
                     const ulong val = ((ulong)unit.value(i) << 16) | (unit.value(i+1));
-                    busData->changeData(val);
+                    busData->setData(val);
                     i++;
                 } break;
 
@@ -185,7 +185,7 @@ void EBusDataEntries::readReady()
                     const qlonglong val1 = ((qlonglong)unit.value(i) << 16) | (unit.value(i+1));
                     const qlonglong val2 = ((qlonglong)unit.value(i+2) << 16) | (unit.value(i+3));
                     const qlonglong val  = ((qlonglong)val1 << 32) | val2;
-                    busData->changeData(val);
+                    busData->setData(val);
                     i += 3;
                 } break;
 
@@ -193,7 +193,7 @@ void EBusDataEntries::readReady()
                     const qulonglong val1 = ((qulonglong)unit.value(i) << 16) | (unit.value(i+1));
                     const qulonglong val2 = ((qulonglong)unit.value(i+2) << 16) | (unit.value(i+3));
                     const qulonglong val  = ((qulonglong)val1 << 32) | val2;
-                    busData->changeData(val);
+                    busData->setData(val);
                     i += 3;
                 } break;
 
