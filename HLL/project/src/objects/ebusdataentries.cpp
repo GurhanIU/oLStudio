@@ -143,6 +143,9 @@ void EBusDataEntries::readReady()
         for (uint i = 0; i < unit.valueCount(); i++) {
             EBusData *busData = entry(unit.startAddress() + i);
 
+            // Her EBusData::dataCount a bakilarak atama yapilacak
+            // Eger 4 byte lik bir degisken ise i fazladan artirilacak
+
             if (busData) {
                 QMetaType::Type dType = busData->dataType();
 

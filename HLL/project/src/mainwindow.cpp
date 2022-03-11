@@ -665,7 +665,7 @@ void MainWindow::slCollectRegisters()
 
         EBusData *entry = m_modbusEntries->addEntry(qry.value(rIdIdx).toInt(),
                                                     qry.value(rAddressIdx).toInt(),
-                                                    EDataUtil::create(typeId, 0),
+                                                    v,
                                                     qry.value(rPrecisonIdx).toInt(),
                                                     qry.value(rNameIdx).toString(),
                                                     qry.value(uUnitIdx).toString());
