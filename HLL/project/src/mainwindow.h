@@ -144,8 +144,7 @@ private slots:
 //    void changedSlaveID(int value);
 //    void addItems();
 //    void clearItems();
-    void slShowEventLogPage();
-    void slShowFactoryCalibrationPage();
+
 //    void modbusScanCycle(bool value);
 //    void modbusRequest();
 //    void refreshView();

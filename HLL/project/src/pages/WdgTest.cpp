@@ -74,14 +74,19 @@ void WdgTest::slUpdateModel()
             continue;
 
         ui->tableWidget->insertRow(row);
-        QTableWidgetItem *itemName = new QTableWidgetItem(QString("%1-%2").arg(busData->alias()).arg(busData->dataTypeName()));
+        QTableWidgetItem *itemName = new QTableWidgetItem(QString("%1(%2)-%3")
+                                                          .arg(busData->alias())
+                                                          .arg(busData->startAddress())
+                                                          .arg(busData->dataTypeName()));
         QTableWidgetItem *itemCurrent = new QTableWidgetItem(QString("- %1").arg(busData->unit()));
         QTableWidgetItem *itemTest = new QTableWidgetItem("");
 
         QString sFactor = "1";
         int factor = sFactor.leftJustified(busData->precision() +1, QChar('0')).toInt();
-        double min = std::numeric_limits<double>::min(); //m_model->record(modelIdx).value(pMinimumIdx).toDouble();
-        double max = std::numeric_limits<double>::max();//m_model->record(modelIdx).value(pMaximumIdx).toDouble();
+        int32_t min = std::numeric_limits<int32_t>::min(); //m_model->record(modelIdx).value(pMinimumIdx).toDouble();
+        int32_t max = std::numeric_limits<int32_t>::max();//m_model->record(modelIdx).value(pMaximumIdx).toDouble();
+
+        qDebug() << min << max;
 
         QLineEdit *edt = new QLineEdit;
         edt->setProperty("address", QVariant(busData->startAddress()));
@@ -91,7 +96,7 @@ void WdgTest::slUpdateModel()
         dblVal->setLocale(QLocale::C);
 
         connect(edt, &QLineEdit::returnPressed, m_dataEntries, [=] {
-            int ival = edt->text().toInt();
+            qint64 ival= edt->text().toLongLong();
 
             if (factor > 1) {
                 double value = edt->text().toDouble();
@@ -108,8 +113,8 @@ void WdgTest::slUpdateModel()
                      << busData->sizeOfDataType()
                      << busData->dataTypeName();
 
-//            busData->setTempValue(EDataUtil::create(busData->dataType(), QVariant(ival)));
-//            m_dataEntries->writeTempValueByEntry(busData);
+            busData->setTempData(ival);
+            m_dataEntries->writeTempValueByEntry(busData);
         });
 
 //        connect(edt, &CustomLineEdit::validatedValue, this, &WdgTest::actualValueChanged);

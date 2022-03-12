@@ -42,35 +42,31 @@ public:
     uint precision() const { return m_precision; }
     void setPrecision(uint newPrecision) { m_precision = newPrecision; }
 
-    QVariant tempValue() const;
-    void setTempValue(QVariant tempValue);
+    QVariant tempData() const;
+    void setTempData(QVariant data);
 
     /******************************************************/
 
     QModbusDataUnit::RegisterType registerType() const { return m_registerType; }
 
-    inline int startAddress() const { return m_startAddress; }
-
-//    template<typename T>
-//    inline void changeData(const T &value);
-//    void changeData(QMetaType::Type type, void *data);
-
-    inline uint dataCount() const { return m_dataCount; }
-    inline int sizeOfDataType() const { return QMetaType::sizeOf(m_dataType); } //Returns the size of the type in bytes
-
     QVariant data() const;
     void setData(QVariant data);
 
-    QString toString() const;
-    QString toFormattedString() const;
+    inline int startAddress() const { return m_startAddress; }
+    inline int sizeOfDataType() const { return QMetaType::sizeOf(m_dataType); } //Returns the size of the type in bytes
 
     bool isValid() const { return   m_registerType != QModbusDataUnit::Invalid
                                     && m_dataType != QMetaType::UnknownType
                                     && m_startAddress != -1; }
 
-
     const QString &unit() const;
     void setUnit(const QString &unit);
+
+    QVector<quint16> &values();
+    QVector<quint16> &tempValues();
+
+    QString toString() const;
+    QString toFormattedString() const;
 
 private:
     Mode m_mode;
@@ -78,21 +74,22 @@ private:
     uint m_dataType = QMetaType::UnknownType; // QMetaType::Type bilgisi //    QMetaType::Type m_metaType;
     int m_registerId;
 
-    QVariant m_data;
     int m_startAddress  = -1; // adres listesinin ilk adresi olsun.
-    QList<int> m_addressList;
-    int m_dataCount = 0;
-    QVariant m_tempValue;
     uint m_precision = 0;
     QString m_alias;
     QString m_unit;
+
+    QVariant m_data;
+    QVector<quint16> m_values;
+
+    QVariant m_tempData;
+    QVector<quint16> m_tempValues;
 
     inline void setMode(const Mode &mode) { m_mode = mode; }
     inline void setRegisterType(const QModbusDataUnit::RegisterType &registerType) { m_registerType = registerType; }
     inline void setRegisterId(int registerId) { m_registerId = registerId; }
     inline void setStartAddress(int newAddress) { m_startAddress = newAddress; }
     inline bool setDataType(uint type);
-    inline void setDataCount(uint newCount) { m_dataCount = newCount; }
 
 signals:
     void dataChanged(QVariant data);

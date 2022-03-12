@@ -29,7 +29,6 @@
 #include "forms/about.h"
 #include "forms/settingsmodbusrtu.h"
 #include "forms/settings.h"
-#include "forms/dlgpersistenteventlog.h"
 #include "modbuscommsettings.h"
 #include "infobar.h"
 
@@ -236,8 +235,7 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
     connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::changedConnect);
     connect(ui->actionWriteToDevice, SIGNAL(triggered()), this, SLOT(slWriteAllToDevice()));
     connect(ui->actionReadFromDevice, SIGNAL(triggered()), this,SLOT(slReadAllFromDevice()));
-    connect(ui->actionPersistentEventLog, &QAction::triggered, this, &MainWindow::slShowEventLogPage);
-    connect(ui->actionFactoryCalibration, &QAction::triggered, this, &MainWindow::slShowFactoryCalibrationPage);
+
     connect(ui->actionLoad_Session, SIGNAL(triggered(bool)), this, SLOT(loadSession()));
     connect(ui->actionSave_Session, SIGNAL(triggered(bool)), this, SLOT(saveSession()));
     connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(close()));
@@ -492,36 +490,6 @@ void MainWindow::slShowPairRegisterPage()
     page.exec();
 }
 
-void MainWindow::slShowEventLogPage()
-{
-    static bool ilk = false;
-    static DlgPersistentEventLog page(m_core, m_modbus);
-
-    if (!ilk){
-//        page.setParent(this);
-        ilk = true;
-
-        connect(&page, &DlgPersistentEventLog::sgVisibilityChanged, ui->actionPersistentEventLog, &QAction::setChecked);
-        connect(&page, &DlgPersistentEventLog::sgMessage, this, &MainWindow::slUpdateStatusBar);
-    }
-
-    if(page.isVisible())
-        page.close();
-    else
-        page.show();
-
-    //Open log file
-//    QLOG_TRACE()<<  "Open log file";
-
-//    QString arg = "file:///" + QCoreApplication::applicationDirPath() + "/log.txt";
-    //    QDesktopServices::openUrl(QUrl(arg));
-}
-
-void MainWindow::slShowFactoryCalibrationPage()
-{
-    qDebug() << Q_FUNC_INFO;
-}
-
 void MainWindow::slPageChanged(const QString &name, const int &id)
 {
     //    qDebug() << id << name;
@@ -670,9 +638,9 @@ void MainWindow::slCollectRegisters()
                                                     qry.value(rNameIdx).toString(),
                                                     qry.value(uUnitIdx).toString());
 
-        if (entry)
-            connect(entry, &EBusData::dataChanged,
-                    this, static_cast<void (MainWindow::*)(EData*)>(&MainWindow::slActualChanged));
+//        if (entry)
+//            connect(entry, &EBusData::dataChanged,
+//                    this, static_cast<void (MainWindow::*)(QVariant*)>(&MainWindow::slActualChanged));
     }
 
     emit sgRegistersCollected();
@@ -778,16 +746,16 @@ void MainWindow::slActualChanged(int value, int registerId)
 
 void MainWindow::slActualChanged(EData *data)
 {
-    EBusData *busData = qobject_cast<EBusData*>(sender());
+//    EBusData *busData = qobject_cast<EBusData*>(sender());
 
-    if (!busData)
-        return;
+//    if (!busData)
+//        return;
 
-    QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
-    qry.prepare(QString("UPDATE PARAMETER SET ACTUAL_VALUE = %1 WHERE REGISTER_ID = %2")
-                  .arg(data->toString())
-                  .arg(busData->registerId()));
-    qry.exec();
+//    QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
+//    qry.prepare(QString("UPDATE PARAMETER SET ACTUAL_VALUE = %1 WHERE REGISTER_ID = %2")
+//                  .arg(data->toString())
+//                  .arg(busData->registerId()));
+//    qry.exec();
 }
 
 void MainWindow::slUpdateStatusBar(const QString &caption, const QString &text, int timeout)

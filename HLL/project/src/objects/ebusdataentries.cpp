@@ -173,14 +173,14 @@ void EBusDataEntries::readReady()
                 } break;
 
                 case QMetaType::Long: {
-                    const long val = ((long)unit.value(i) << 16) | (unit.value(i+1));
+                    const qint32 val = ((long)unit.value(i) << 16) | (unit.value(i+1));
                     busData->setData(val);
                     i++;
                 } break;
 
                 case QMetaType::ULong: {
-                    const ulong val = ((ulong)unit.value(i) << 16) | (unit.value(i+1));
-                    busData->setData(val);
+                    const quint32 val = ((ulong)unit.value(i) << 16) | (unit.value(i+1));
+                    busData->setData(QVariant(val));
                     i++;
                 } break;
 
@@ -254,9 +254,9 @@ void EBusDataEntries::writeTempValueByEntry(EBusData *e)
 {
     if (!hasEntry(e))
         return;
+
     if (e) {
-        QModbusDataUnit writeUnit = QModbusDataUnit(m_registerType, e->startAddress(), 1);
-        writeUnit.setValue(0, e->tempValue()->toUshort());
+        QModbusDataUnit writeUnit = QModbusDataUnit(m_registerType, e->startAddress(), e->tempValues());
 
         writeDataUnit(writeUnit);
     }
@@ -357,7 +357,7 @@ QList<QModbusDataUnit> EBusDataEntries::prepareDataUnitsForWrite(const QList<Ent
         for (int i=0; i < entry->count(); i++) {
             EBusData *bus = entry->at(i);
             bool ok = false;
-            quint16 value =  static_cast<quint16>(bus->data()->toShort(&ok));
+            quint16 value =  static_cast<quint16>(bus->data().toUInt(&ok));
             writeUnit.setValue(i, value);
         }
 

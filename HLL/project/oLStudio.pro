@@ -61,7 +61,6 @@ SOURCES += \
     src/forms/dlgpairregisterpage.cpp \
     src/forms/dlgpairtyperegister.cpp \
     src/forms/dlgparameter.cpp \
-    src/forms/dlgpersistenteventlog.cpp \
     src/forms/dlgregister.cpp \
     src/forms/settingsmodbusrtu.cpp \
     src/forms/settings.cpp \
@@ -99,7 +98,6 @@ HEADERS += \ version.h \
     src/forms/dlgpairregisterpage.h \
     src/forms/dlgpairtyperegister.h \
     src/forms/dlgparameter.h \
-    src/forms/dlgpersistenteventlog.h \
     src/forms/dlgregister.h \
     src/forms/settingsmodbusrtu.h \
     src/forms/settings.h \
@@ -140,7 +138,6 @@ FORMS += \
     src/forms/dlgpairregisterpage.ui \
     src/forms/dlgpairtyperegister.ui \
     src/forms/dlgparameter.ui \
-    src/forms/dlgpersistenteventlog.ui \
     src/forms/dlgregister.ui \
     src/forms/settingsmodbusrtu.ui \
     src/forms/settings.ui \

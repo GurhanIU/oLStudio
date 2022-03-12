@@ -1,5 +1,8 @@
 #include "ebusdata.h"
 
+#include <QVector>
+#include <QDataStream>
+
 EBusData::EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, QVariant data, int precision, const QString &alias, const QString &unit, QObject *parent) :
     QObject(parent),
     m_mode(ModeFlag::None),
@@ -21,28 +24,17 @@ void EBusData::init()
 {
     if (objectName().isEmpty())
         setObjectName(QString::number(m_startAddress));
-
-    const quint8 byteCount = sizeOfDataType();
-    const quint8 itemCount = byteCount / 2;
-
-    m_addressList.clear();
-    m_addressList.append(m_startAddress);
-
-    for (int i = 1; i < itemCount; i++) {
-        m_addressList.append(m_startAddress + i);
-    }
-
-    qDebug() << m_alias << byteCount << m_addressList;
 }
 
-QVariant EBusData::tempValue() const
+QVariant EBusData::tempData() const
 {
-    return m_tempValue;
+    return m_tempData;
 }
 
-void EBusData::setTempValue(QVariant tempValue)
+void EBusData::setTempData(QVariant data)
 {
-    m_tempValue = tempValue;
+    m_tempData = data;
+    qDebug() << m_tempData;
 }
 
 const QString &EBusData::unit() const
@@ -53,6 +45,62 @@ const QString &EBusData::unit() const
 void EBusData::setUnit(const QString &unit)
 {
     m_unit = unit;
+}
+
+QVector<quint16> &EBusData::values()
+{
+    m_values.clear();
+    const quint8 byteCount = sizeOfDataType();
+    const QByteArray byteArray = m_data.toByteArray();
+
+    for (int i = 0; i < byteCount; ) {
+        quint16 var = byteArray.at(i++);
+        quint8 l = byteArray.at(i++);
+        var = (var << 8) | l;
+        m_values.append(var);
+    }
+
+    return m_values;
+}
+
+quint8 getUint8Val(const void *data)
+{
+    const quint8 *ptr = reinterpret_cast<const quint8*>(data);
+    quint8 var = *(quint8*)ptr;
+
+    return var;
+}
+
+//void values(const QVariant var)
+//{
+//    QVector<quint16> tempValues;
+//    const quint8 byteCount = QMetaType::sizeOf(var);
+
+
+//    for (int i = 0; i < byteCount; ) {
+//        size_t offset_1 = i * 8;
+//        size_t offset_2 = ++1 * 8;
+//        quint16 var = (quint16)setData(m_tempData.constData() + offset_1);
+//        quint8 l = setData(m_tempData.constData() + offset_2);
+//        var = (var << 8) | l;
+//        tempValues.append(var);
+//    }
+//}
+
+QVector<quint16> &EBusData::tempValues()
+{
+    m_tempValues.clear();
+    const quint16 byteCount = sizeOfDataType();
+    quint16* accessible_data = static_cast<quint16*>(m_tempData.data());
+
+    for (int i = 0; i < byteCount/2; i++) {
+        quint16 *v = static_cast<quint16*>(accessible_data + i);
+        m_tempValues.append(*v);
+    }
+
+    qDebug() << m_tempValues;
+
+    return m_tempValues;
 }
 
 bool EBusData::setDataType(uint type)
