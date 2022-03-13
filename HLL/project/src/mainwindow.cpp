@@ -638,9 +638,9 @@ void MainWindow::slCollectRegisters()
                                                     qry.value(rNameIdx).toString(),
                                                     qry.value(uUnitIdx).toString());
 
-//        if (entry)
-//            connect(entry, &EBusData::dataChanged,
-//                    this, static_cast<void (MainWindow::*)(QVariant*)>(&MainWindow::slActualChanged));
+        if (entry)
+            connect(entry, &EBusData::dataChanged,
+                    this, static_cast<void (MainWindow::*)(QVariant)>(&MainWindow::slActualChanged));
     }
 
     emit sgRegistersCollected();
@@ -730,32 +730,18 @@ void MainWindow::slActualChanged(int value, int registerId)
     qry.exec();
 }
 
-//void MainWindow::slActualChanged(QVariant value)
-//{
-//    EBusData *busData = qobject_cast<EBusData*>(sender());
-
-//    if (!busData)
-//        return;
-
-//    QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
-//    qry.prepare(QString("UPDATE PARAMETER SET ACTUAL_VALUE = %1 WHERE REGISTER_ID = %2")
-//                  .arg(busData->data().toUInt())
-//                  .arg(busData->registerId()));
-//    qry.exec();
-//}
-
-void MainWindow::slActualChanged(EData *data)
+void MainWindow::slActualChanged(QVariant data)
 {
-//    EBusData *busData = qobject_cast<EBusData*>(sender());
+    EBusData *busData = qobject_cast<EBusData*>(sender());
 
-//    if (!busData)
-//        return;
+    if (!busData)
+        return;
 
-//    QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
-//    qry.prepare(QString("UPDATE PARAMETER SET ACTUAL_VALUE = %1 WHERE REGISTER_ID = %2")
-//                  .arg(data->toString())
-//                  .arg(busData->registerId()));
-//    qry.exec();
+    QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
+    qry.prepare(QString("UPDATE PARAMETER SET ACTUAL_VALUE = %1 WHERE REGISTER_ID = %2")
+                  .arg(data.toString())
+                  .arg(busData->registerId()));
+    qry.exec();
 }
 
 void MainWindow::slUpdateStatusBar(const QString &caption, const QString &text, int timeout)

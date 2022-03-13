@@ -255,11 +255,8 @@ void EBusDataEntries::writeTempValueByEntry(EBusData *e)
     if (!hasEntry(e))
         return;
 
-    if (e) {
-        QModbusDataUnit writeUnit = QModbusDataUnit(m_registerType, e->startAddress(), e->tempValues());
-
-        writeDataUnit(writeUnit);
-    }
+    if (e)
+        writeDataUnit(QModbusDataUnit(m_registerType, e->startAddress(), e->tempVector()));
 }
 
 void EBusDataEntries::writeEntries(const EntryList &entryList)
@@ -440,7 +437,7 @@ int EBusDataEntries::calculateRegisterCount(const EntryList &entries)
     int count = 0;
 
     foreach (EBusData *entry, entries) {
-        count += entry->sizeOfDataType() / 2;
+        count += QMetaType::sizeOf(entry->dataType()) / 2;
     }
 
     return count;

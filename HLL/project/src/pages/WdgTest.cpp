@@ -62,22 +62,22 @@ void WdgTest::slModbusStateChanged(int state)
 
 void setValidatorByTpye(QLineEdit *lineEdit, int decimals, QMetaType::Type type)
 {
-    int32_t min = type == QMetaType::Char   ? std::numeric_limits<qint8>::min() :
-                  type == QMetaType::UChar  ? std::numeric_limits<quint8>::min() :
-                  type == QMetaType::Short  ? std::numeric_limits<qint16>::min() :
-                  type == QMetaType::UShort ? std::numeric_limits<quint16>::min() :
-                  type == QMetaType::Int    ? std::numeric_limits<qint32>::min():
-                  type == QMetaType::UInt   ? std::numeric_limits<quint32>::min() :
-                  type == QMetaType::Long   ? std::numeric_limits<qint32>::min() :
+    double min = type == QMetaType::Char   ? std::numeric_limits<qint8>::min() :
+                 type == QMetaType::UChar  ? std::numeric_limits<quint8>::min() :
+                 type == QMetaType::Short  ? std::numeric_limits<qint16>::min() :
+                 type == QMetaType::UShort ? std::numeric_limits<quint16>::min() :
+                 type == QMetaType::Int    ? std::numeric_limits<qint32>::min() :
+                 type == QMetaType::UInt   ? std::numeric_limits<quint32>::min() :
+                 type == QMetaType::Long   ? std::numeric_limits<qint32>::min() :
                                               std::numeric_limits<quint32>::min();
 
-    int32_t max = type == QMetaType::Char   ? std::numeric_limits<qint8>::max() :
-                  type == QMetaType::UChar  ? std::numeric_limits<quint8>::max() :
-                  type == QMetaType::Short  ? std::numeric_limits<qint16>::max() :
-                  type == QMetaType::UShort ? std::numeric_limits<quint16>::max() :
-                  type == QMetaType::Int    ? std::numeric_limits<qint32>::max():
-                  type == QMetaType::UInt   ? std::numeric_limits<quint32>::max() :
-                  type == QMetaType::Long   ? std::numeric_limits<qint32>::max() :
+    double max = type == QMetaType::Char   ? std::numeric_limits<qint8>::max() :
+                 type == QMetaType::UChar  ? std::numeric_limits<quint8>::max() :
+                 type == QMetaType::Short  ? std::numeric_limits<qint16>::max() :
+                 type == QMetaType::UShort ? std::numeric_limits<quint16>::max() :
+                 type == QMetaType::Int    ? std::numeric_limits<qint32>::max() :
+                 type == QMetaType::UInt   ? std::numeric_limits<quint32>::max() :
+                 type == QMetaType::Long   ? std::numeric_limits<qint32>::max() :
                                               std::numeric_limits<quint32>::max();
 
     qDebug() << lineEdit->objectName() << min << max;
@@ -132,7 +132,7 @@ void WdgTest::slUpdateModel()
             qDebug() << busData->alias()
                      << ival
                      << busData->dataType()
-                     << busData->sizeOfDataType()
+                     << QMetaType::sizeOf(busData->dataType())
                      << busData->dataTypeName();
 
             busData->setTempData(ival);

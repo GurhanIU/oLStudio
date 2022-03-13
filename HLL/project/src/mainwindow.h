@@ -175,8 +175,7 @@ private slots:
 
     void slPageChanged(const QString &name, const int &id);
     void slActualChanged(int value, int registerId);
-//    void slActualChanged(QVariant value);
-    void slActualChanged(EData *data);
+    void slActualChanged(QVariant data);
     void callCreateForm();
     void slUpdateStatusBar(const QString &caption, const QString &text, int timeout = 5000);
 protected:
