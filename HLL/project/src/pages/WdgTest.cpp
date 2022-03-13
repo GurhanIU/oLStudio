@@ -60,6 +60,35 @@ void WdgTest::slModbusStateChanged(int state)
     }
 }
 
+void setValidatorByTpye(QLineEdit *lineEdit, int decimals, QMetaType::Type type)
+{
+    int32_t min = type == QMetaType::Char   ? std::numeric_limits<qint8>::min() :
+                  type == QMetaType::UChar  ? std::numeric_limits<quint8>::min() :
+                  type == QMetaType::Short  ? std::numeric_limits<qint16>::min() :
+                  type == QMetaType::UShort ? std::numeric_limits<quint16>::min() :
+                  type == QMetaType::Int    ? std::numeric_limits<qint32>::min():
+                  type == QMetaType::UInt   ? std::numeric_limits<quint32>::min() :
+                  type == QMetaType::Long   ? std::numeric_limits<qint32>::min() :
+                                              std::numeric_limits<quint32>::min();
+
+    int32_t max = type == QMetaType::Char   ? std::numeric_limits<qint8>::max() :
+                  type == QMetaType::UChar  ? std::numeric_limits<quint8>::max() :
+                  type == QMetaType::Short  ? std::numeric_limits<qint16>::max() :
+                  type == QMetaType::UShort ? std::numeric_limits<quint16>::max() :
+                  type == QMetaType::Int    ? std::numeric_limits<qint32>::max():
+                  type == QMetaType::UInt   ? std::numeric_limits<quint32>::max() :
+                  type == QMetaType::Long   ? std::numeric_limits<qint32>::max() :
+                                              std::numeric_limits<quint32>::max();
+
+    qDebug() << lineEdit->objectName() << min << max;
+
+    QDoubleValidator *dblVal = new QDoubleValidator(min, max, decimals, lineEdit);
+    dblVal->setNotation(QDoubleValidator::StandardNotation);
+    dblVal->setLocale(QLocale::C);
+
+    lineEdit->setValidator(dblVal);
+}
+
 void WdgTest::slUpdateModel()
 {
     m_entryList.clear();
@@ -83,17 +112,10 @@ void WdgTest::slUpdateModel()
 
         QString sFactor = "1";
         int factor = sFactor.leftJustified(busData->precision() +1, QChar('0')).toInt();
-        int32_t min = std::numeric_limits<int32_t>::min(); //m_model->record(modelIdx).value(pMinimumIdx).toDouble();
-        int32_t max = std::numeric_limits<int32_t>::max();//m_model->record(modelIdx).value(pMaximumIdx).toDouble();
-
-        qDebug() << min << max;
 
         QLineEdit *edt = new QLineEdit;
+        edt->setObjectName(itemName->text());
         edt->setProperty("address", QVariant(busData->startAddress()));
-
-        QDoubleValidator *dblVal = new QDoubleValidator(min, max, busData->precision(), edt);
-        dblVal->setNotation(QDoubleValidator::StandardNotation);
-        dblVal->setLocale(QLocale::C);
 
         connect(edt, &QLineEdit::returnPressed, m_dataEntries, [=] {
             qint64 ival= edt->text().toLongLong();
@@ -125,7 +147,8 @@ void WdgTest::slUpdateModel()
 
         edt->setPlaceholderText("");
         edt->setText("");
-        edt->setValidator(dblVal);
+
+        setValidatorByTpye(edt, busData->precision(), busData->dataType());
 
         ui->tableWidget->setItem(row, 0, itemName);
         ui->tableWidget->setItem(row, 1, itemCurrent);

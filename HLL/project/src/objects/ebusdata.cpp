@@ -90,15 +90,22 @@ quint8 getUint8Val(const void *data)
 QVector<quint16> &EBusData::tempValues()
 {
     m_tempValues.clear();
-    const quint16 byteCount = sizeOfDataType();
-    quint16* accessible_data = static_cast<quint16*>(m_tempData.data());
+    quint8* accessible_data = static_cast<quint8*>(m_tempData.data());
+    const int byteCount = sizeOfDataType();
 
-    for (int i = 0; i < byteCount/2; i++) {
-        quint16 *v = static_cast<quint16*>(accessible_data + i);
-        m_tempValues.append(*v);
+//    QDataStream d();
+//    d.setByteOrder(QDataStream::BigEndian);
+//    d.setFloatingPointPrecision(QDataStream::SinglePrecision);
+
+    for (int i = 0; i < byteCount; i+=2) {
+        quint8 *v1 = static_cast<quint8*>(accessible_data + i);
+        quint8 *v2 = static_cast<quint8*>(accessible_data + i + 1);
+
+        quint16 var = (quint16)(*v2);
+        var = (var << 8)  | (*v1);
+        m_tempValues.append(var);
+//        d << *v;
     }
-
-    qDebug() << m_tempValues;
 
     return m_tempValues;
 }
@@ -118,6 +125,11 @@ void EBusData::setData(QVariant data)
 {
     m_data = data;
     emit dataChanged(m_data);
+}
+
+int EBusData::sizeOfDataType() const
+{
+    return QMetaType::sizeOf(m_dataType);
 }
 
 //void EBusData::changeData(QMetaType::Type type, void *data)

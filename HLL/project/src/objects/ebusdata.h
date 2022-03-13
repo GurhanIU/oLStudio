@@ -53,7 +53,7 @@ public:
     void setData(QVariant data);
 
     inline int startAddress() const { return m_startAddress; }
-    inline int sizeOfDataType() const { return QMetaType::sizeOf(m_dataType); } //Returns the size of the type in bytes
+    int sizeOfDataType() const; //Returns the size of the type in bytes
 
     bool isValid() const { return   m_registerType != QModbusDataUnit::Invalid
                                     && m_dataType != QMetaType::UnknownType
