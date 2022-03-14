@@ -321,9 +321,6 @@ void MainWindow::callCreateForm()
         return;
     }
 
-    #ifndef QT_DEBUG
-    ui->menuFactory->setEnabled(true);
-    #endif
     setWindowTitle(QString("%1 - [%2]").arg(VER_PRODUCTNAME_STR).arg(m_dbFile));
 
     resetDbActualValues(m_dbFile);
@@ -621,7 +618,6 @@ void MainWindow::slCollectRegisters()
 //    dataFactory.RegisterAllTypes();
 
     while (qry.next()) {
-        const QMetaType::Type typeId = static_cast<QMetaType::Type>(qry.value(vTypeIdx).toUInt());
         const QVariant::Type vtypeId = static_cast<QVariant::Type>(qry.value(vTypeIdx).toUInt());
 
 //        std::unique_ptr<EData> ee = dataFactory.Create(type);
@@ -737,11 +733,14 @@ void MainWindow::slActualChanged(QVariant data)
     if (!busData)
         return;
 
-    QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
-    qry.prepare(QString("UPDATE PARAMETER SET ACTUAL_VALUE = %1 WHERE REGISTER_ID = %2")
-                  .arg(data.toString())
-                  .arg(busData->registerId()));
-    qry.exec();
+    qDebug() << QString("%1(%2)").arg(busData->alias()).arg(busData->startAddress())
+             << data.toString() << busData->data();
+
+//    QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
+//    qry.prepare(QString("UPDATE PARAMETER SET ACTUAL_VALUE = %1 WHERE REGISTER_ID = %2")
+//                  .arg(data.toString())
+//                  .arg(busData->registerId()));
+//    qry.exec();
 }
 
 void MainWindow::slUpdateStatusBar(const QString &caption, const QString &text, int timeout)

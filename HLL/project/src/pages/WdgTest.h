@@ -36,6 +36,8 @@ public slots:
 private slots:
     void on_btnAdd_clicked();
 
+    void on_btnStartStop_toggled(bool checked);
+
 private:
     Ui::WdgTest *ui;
     EDesignerFormEditorInterface *m_core;

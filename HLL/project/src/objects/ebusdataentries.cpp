@@ -150,7 +150,7 @@ void EBusDataEntries::readReady()
                 QMetaType::Type dType = busData->dataType();
 
                 if (dType == QMetaType::UnknownType)
-                    return;
+                    continue;
 
                 switch (dType) {
                 case QMetaType::Char: {
@@ -170,6 +170,12 @@ void EBusDataEntries::readReady()
                 case QMetaType::UShort: {
                     const quint16 val = static_cast<quint16>(unit.value(i));
                     busData->setData(val);
+                } break;
+
+                case QMetaType::Int: {
+                    const qint32 val = ((int)unit.value(i) << 16) | (unit.value(i+1));
+                    busData->setData(val);
+                    i++;
                 } break;
 
                 case QMetaType::Long: {
@@ -201,7 +207,7 @@ void EBusDataEntries::readReady()
                 } break;
 
                 default:
-                    return;
+                    break;
                 }
             }
         }

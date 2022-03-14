@@ -118,24 +118,6 @@ border-top: 1px solid  #E0E0E0;
     </property>
     <addaction name="actionAbout"/>
    </widget>
-   <widget class="QMenu" name="menuFactory">
-    <property name="enabled">
-     <bool>false</bool>
-    </property>
-    <property name="title">
-     <string>Fabrika</string>
-    </property>
-    <addaction name="actionNew_RegAddress"/>
-    <addaction name="actionNew_Parameter"/>
-    <addaction name="actionDefineAlarmBits"/>
-    <addaction name="separator"/>
-    <addaction name="actionNew_Menu"/>
-    <addaction name="actionNew_Page"/>
-    <addaction name="separator"/>
-    <addaction name="actionPair_TypeRegister"/>
-    <addaction name="actionPair_MenuPage"/>
-    <addaction name="actionPair_RegisterPage"/>
-   </widget>
    <widget class="QMenu" name="menuAyarlar">
     <property name="title">
      <string>Bağlantı</string>
@@ -146,7 +128,6 @@ border-top: 1px solid  #E0E0E0;
     <addaction name="actionExit"/>
    </widget>
    <addaction name="menuAyarlar"/>
-   <addaction name="menuFactory"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusBar">

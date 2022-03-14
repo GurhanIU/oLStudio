@@ -31,6 +31,8 @@ WdgTest::WdgTest(EDesignerFormEditorInterface *core, EBusDataEntries *dataEntrie
 {
     ui->setupUi(this);
 
+    ui->edtTimeout->setValidator(new QIntValidator(50, 10000, ui->edtTimeout));
+
     initAddToolBox();
 }
 
@@ -62,31 +64,32 @@ void WdgTest::slModbusStateChanged(int state)
 
 void setValidatorByTpye(QLineEdit *lineEdit, int decimals, QMetaType::Type type)
 {
-    double min = type == QMetaType::Char   ? std::numeric_limits<qint8>::min() :
+    int min = type == QMetaType::Char   ? std::numeric_limits<qint8>::min() :
                  type == QMetaType::UChar  ? std::numeric_limits<quint8>::min() :
                  type == QMetaType::Short  ? std::numeric_limits<qint16>::min() :
                  type == QMetaType::UShort ? std::numeric_limits<quint16>::min() :
                  type == QMetaType::Int    ? std::numeric_limits<qint32>::min() :
                  type == QMetaType::UInt   ? std::numeric_limits<quint32>::min() :
                  type == QMetaType::Long   ? std::numeric_limits<qint32>::min() :
-                                              std::numeric_limits<quint32>::min();
+                                             std::numeric_limits<quint32>::min();
 
-    double max = type == QMetaType::Char   ? std::numeric_limits<qint8>::max() :
+    int max = type == QMetaType::Char   ? std::numeric_limits<qint8>::max() :
                  type == QMetaType::UChar  ? std::numeric_limits<quint8>::max() :
                  type == QMetaType::Short  ? std::numeric_limits<qint16>::max() :
                  type == QMetaType::UShort ? std::numeric_limits<quint16>::max() :
                  type == QMetaType::Int    ? std::numeric_limits<qint32>::max() :
                  type == QMetaType::UInt   ? std::numeric_limits<quint32>::max() :
                  type == QMetaType::Long   ? std::numeric_limits<qint32>::max() :
-                                              std::numeric_limits<quint32>::max();
+                                             std::numeric_limits<quint32>::max();
 
     qDebug() << lineEdit->objectName() << min << max;
 
-    QDoubleValidator *dblVal = new QDoubleValidator(min, max, decimals, lineEdit);
-    dblVal->setNotation(QDoubleValidator::StandardNotation);
-    dblVal->setLocale(QLocale::C);
+//    QDoubleValidator *validator = new QDoubleValidator(min, max, decimals, lineEdit);
+//    validator->setNotation(QDoubleValidator::StandardNotation);
+//    validator->setLocale(QLocale::C);
+    QIntValidator *validator = new QIntValidator(min, max, lineEdit);
 
-    lineEdit->setValidator(dblVal);
+    lineEdit->setValidator(validator);
 }
 
 void WdgTest::slUpdateModel()
@@ -129,11 +132,6 @@ void WdgTest::slUpdateModel()
             }
 
             itemTest->setText(QString::number(ival));
-            qDebug() << busData->alias()
-                     << ival
-                     << busData->dataType()
-                     << QMetaType::sizeOf(busData->dataType())
-                     << busData->dataTypeName();
 
             busData->setTempData(ival);
             m_dataEntries->writeTempValueByEntry(busData);
@@ -144,6 +142,22 @@ void WdgTest::slUpdateModel()
 //        connect(edt, &CustomLineEdit::validatedValue, busData, [busData](short value) {
 //            busData->changeData(value);
 //        });
+
+        connect(busData, &EBusData::dataChanged,  [this, busData, itemCurrent](QVariant data) {
+            itemCurrent->setText(data.toString());
+
+            int rc = ui->tableHistory->rowCount();
+            ui->tableHistory->insertRow(rc);
+            QTableWidgetItem *name = new QTableWidgetItem(QString("%1").arg(busData->alias()));
+            QTableWidgetItem *current = new QTableWidgetItem(data.toString());
+
+            ui->tableHistory->setItem(rc, 0, name);
+            ui->tableHistory->setItem(rc, 1, current);
+            ui->tableHistory->setRowHeight(rc, 25);
+
+            ui->tableHistory->scrollToBottom();
+
+        });
 
         edt->setPlaceholderText("");
         edt->setText("");
@@ -181,7 +195,9 @@ void WdgTest::initAddToolBox()
     }
 
     // -- Add
-    ui->cmbAddModbusFunc->setModel(m_addModel->relationModel(modbusFuncIdx));
+    QSqlTableModel *modbusFuncModel = m_addModel->relationModel(modbusFuncIdx);
+    modbusFuncModel->setFilter(QString("ACTIVATED == '1'"));
+    ui->cmbAddModbusFunc->setModel(modbusFuncModel);
     ui->cmbAddModbusFunc->setModelColumn(m_addModel->relationModel(modbusFuncIdx)->fieldIndex("NAME"));
 
     QSqlTableModel *variantModel = m_addModel->relationModel(variantTypeIdx);
@@ -250,3 +266,18 @@ void WdgTest::on_btnAdd_clicked()
     else
         qDebug() << m_addModel->lastError() << "\n" <<m_addModel->lastError().text();
 }
+
+void WdgTest::on_btnStartStop_toggled(bool checked)
+{
+    if (checked) {
+        m_dataEntries->startReadContinuously(ui->edtTimeout->text().toInt());
+        ui->btnStartStop->setText(tr("STOP"));
+    }
+    else {
+        m_dataEntries->stopReadContinuously();
+        ui->btnStartStop->setText(tr("START"));
+    }
+
+    ui->edtTimeout->setDisabled(checked);
+}
+
