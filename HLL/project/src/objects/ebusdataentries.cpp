@@ -384,6 +384,17 @@ QList<EBusDataEntries::EntryList *> EBusDataEntries::collectSubEntries(const Ent
         pList->append(entries.at(0));
         subEntries.append(pList);
 
+        QList<int> addressList;
+
+        foreach (EBusData *busData, entries) {
+            addressList.append(busData->startAddress());
+
+            if (QMetaType::sizeOf(busData->dataType()) > 2 )
+                addressList.append(busData->startAddress() +1);
+        }
+
+        qDebug() << addressList;
+
         for (int i=1; i < entries.count(); i++) {
             EBusData *modbusData = entries.at(i);
             EBusData *lastModbusData = pList->last();
