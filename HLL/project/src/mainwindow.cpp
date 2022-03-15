@@ -26,28 +26,18 @@
 
 #include "version.h"
 #include "initdb.h"
-#include "forms/about.h"
-#include "forms/settingsmodbusrtu.h"
-#include "forms/settings.h"
+
 #include "modbuscommsettings.h"
 #include "infobar.h"
 
-#include "forms/dlgregister.h"
-#include "forms/dlgmodbusfunction.h"
-#include "forms/dlgparameter.h"
-#include "forms/dlgalarmconfig.h"
-#include "forms/dlgmenu.h"
-#include "forms/dlgpageutil.h"
-#include "forms/dlgpairmenupage.h"
-#include "forms/dlgpairregisterpage.h"
-#include "forms/dlgpairtyperegister.h"
-
-#include "edesigner_components.h"
-#include "abstractformeditor.h"
-#include "menubox.h"
-
 #include "pages/WdgTest.h"
-#include "objects/edata.h"
+
+#include "forms/about.h"
+#include "forms/settingsmodbusrtu.h"
+#include "forms/settings.h"
+#include "forms/toptoolbox.h"
+#include "forms/entrytoolbox.h"
+
 #include "objects/ebusdata.h"
 #include "objects/ebusdataentries.h"
 
@@ -207,15 +197,6 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
 
     //UI - Custom
     connect(ui->actionOpenFile, &QAction::triggered, this, &MainWindow::callCreateForm);
-    connect(ui->actionNew_RegAddress, SIGNAL(triggered()), this, SLOT(slShowAddress()));
-    connect(ui->actionNew_ModbusFunction, SIGNAL(triggered()), this, SLOT(slShowAddressType()));
-    connect(ui->actionNew_Parameter, SIGNAL(triggered()), this, SLOT(slShowParameter()));
-    connect(ui->actionDefineAlarmBits, SIGNAL(triggered()), this, SLOT(slAlarmConfig()));
-    connect(ui->actionPair_TypeRegister, &QAction::triggered, this, &MainWindow::slShowPairTypeRegister);
-    connect(ui->actionNew_Menu, SIGNAL(triggered()), this, SLOT(slShowMenu()));
-    connect(ui->actionNew_Page, SIGNAL(triggered()), this, SLOT(slShowPageUtil()));
-    connect(ui->actionPair_MenuPage, SIGNAL(triggered()), this, SLOT(slShowPairMenuPage()));
-    connect(ui->actionPair_RegisterPage, &QAction::triggered, this, &MainWindow::slShowPairRegisterPage);
 
     //UI - dialogs
     m_dlgAbout = new About();
@@ -325,14 +306,18 @@ void MainWindow::callCreateForm()
 
     resetDbActualValues(m_dbFile);
 
-    m_core = new EDesignerFormEditorInterface();
-    m_core->setDbFile(m_dbFile);
+    TopToolBox *topToolBox = new TopToolBox(this);
+    ui->centralwidget->layout()->addWidget(topToolBox);
 
-    WdgTest *page = new WdgTest(m_core, m_modbusEntries, ui->splitter);
-    ui->splitter->addWidget(page);
+    WdgTest *page = new WdgTest(m_modbusEntries, this);
+    ui->centralwidget->layout()->addWidget(page);
 
+    EntryToolBox *entryBox = new EntryToolBox(this);
+    ui->centralwidget->layout()->addWidget(entryBox);
+
+    connect(topToolBox, &TopToolBox::sgStartStopToggled, this, &MainWindow::slStartStop);
     connect(this, &MainWindow::sgRegistersCollected, page, &WdgTest::slUpdateModel);
-    connect(page, &WdgTest::sgCollectRegisters, this, &MainWindow::slCollectRegisters);
+    connect(entryBox, &EntryToolBox::sgCollectRegisters, this, &MainWindow::slCollectRegisters);
 
     connect(m_modbus, &QModbusClient::stateChanged, page, &WdgTest::slModbusStateChanged);
 
@@ -433,65 +418,6 @@ void MainWindow::saveSession()
 
 }
 
-void MainWindow::slShowAddress()
-{
-    DlgRegister page(m_core, this);
-    page.exec();
-}
-
-void MainWindow::slShowParameter()
-{
-    DlgParameter page(m_core);
-    page.exec();
-}
-
-void MainWindow::slAlarmConfig()
-{
-    DlgAlarmConfig page(m_core);
-    page.exec();
-}
-
-void MainWindow::slShowAddressType()
-{
-    DlgModbusFunction page(m_core);
-    page.exec();
-}
-
-void MainWindow::slShowPairTypeRegister()
-{
-    DlgPairTypeRegister page(m_core);
-    page.exec();
-}
-
-void MainWindow::slShowMenu()
-{
-    DlgMenu page(m_core);
-    page.exec();
-}
-
-void MainWindow::slShowPageUtil()
-{
-    DlgPageUtil page(m_core);
-    page.exec();
-}
-
-void MainWindow::slShowPairMenuPage()
-{
-    DlgPairMenuPage page(m_core);
-    page.exec();
-}
-
-void MainWindow::slShowPairRegisterPage()
-{
-    DlgPairRegisterPage page(m_core);
-    page.exec();
-}
-
-void MainWindow::slPageChanged(const QString &name, const int &id)
-{
-    //    qDebug() << id << name;
-}
-
 void MainWindow::closeEvent(QCloseEvent *e)
 {
     switch (m_policy) {
@@ -519,8 +445,7 @@ void MainWindow::closeEvent(QCloseEvent *e)
 
 QModbusClient * MainWindow::createModbusClient()
 {
-    if (m_modbus)
-    {
+    if (m_modbus) {
         m_modbus->disconnectDevice();
         delete m_modbus;
         m_modbus = nullptr;
@@ -544,8 +469,7 @@ void MainWindow::changedConnect(bool value) //Connect - Disconnect
     if (value) {
         if (m_modbus)
             QTimer::singleShot(30, this, SLOT(modbusConnect()));
-    }
-    else {
+    } else {
         if (m_modbus)
             m_modbus->disconnectDevice();
 
@@ -577,8 +501,7 @@ void MainWindow::modbusConnect() //Modbus connect - RTU/TCP
 
         if (!m_modbus->connectDevice())
             statusBar()->showMessage(tr("Connect failed: ") + m_modbus->errorString(), 5000);
-    }
-    else {
+    } else {
         m_modbus->disconnectDevice();
         emit sgProcessValue(0);
 //        ui->actionConnect->setEnabled(true);
@@ -640,6 +563,14 @@ void MainWindow::slCollectRegisters()
     }
 
     emit sgRegistersCollected();
+}
+
+void MainWindow::slStartStop(bool toggle)
+{
+    if (toggle)
+        m_modbusEntries->startReadContinuously(300);
+    else
+        m_modbusEntries->stopReadContinuously();
 }
 
 QString MainWindow::dbFile() const
@@ -715,15 +646,6 @@ void MainWindow::updateStatusBar()
     }
 
     m_statusText->setText(msg);
-}
-
-void MainWindow::slActualChanged(int value, int registerId)
-{
-    QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
-    qry.prepare(QString("UPDATE PARAMETER SET ACTUAL_VALUE = %1 WHERE REGISTER_ID = %2")
-                  .arg(value)
-                  .arg(registerId));
-    qry.exec();
 }
 
 void MainWindow::slActualChanged(QVariant data)

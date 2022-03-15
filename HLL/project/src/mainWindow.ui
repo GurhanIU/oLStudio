@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1280</width>
-    <height>920</height>
+    <width>545</width>
+    <height>455</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -37,6 +37,7 @@ QSplitter::handle:horizontal {
 margin-bottom: 2px;
 border-radius: 4px;*/
 }
+
 </string>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -55,46 +56,6 @@ border-radius: 4px;*/
     <property name="bottomMargin">
      <number>0</number>
     </property>
-    <item>
-     <widget class="QSplitter" name="splitter">
-      <property name="minimumSize">
-       <size>
-        <width>3</width>
-        <height>7</height>
-       </size>
-      </property>
-      <property name="autoFillBackground">
-       <bool>false</bool>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::NoFrame</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Plain</enum>
-      </property>
-      <property name="lineWidth">
-       <number>0</number>
-      </property>
-      <property name="midLineWidth">
-       <number>0</number>
-      </property>
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="opaqueResize">
-       <bool>true</bool>
-      </property>
-      <property name="handleWidth">
-       <number>3</number>
-      </property>
-      <property name="childrenCollapsible">
-       <bool>false</bool>
-      </property>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -102,7 +63,7 @@ border-radius: 4px;*/
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1280</width>
+     <width>545</width>
      <height>20</height>
     </rect>
    </property>
@@ -135,6 +96,12 @@ border-top: 1px solid  #E0E0E0;
     <size>
      <width>0</width>
      <height>25</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>16777215</width>
+     <height>16777205</height>
     </size>
    </property>
    <property name="autoFillBackground">

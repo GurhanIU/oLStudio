@@ -1,7 +1,6 @@
 #include "ebusdataentries.h"
 
 #include "ebusdata.h"
-#include "edata.h"
 
 #include <QMessageBox>
 #include <QModbusClient>

@@ -1,8 +1,6 @@
 #include "WdgTest.h"
 #include "ui_WdgTest.h"
 
-#include "abstractformeditor.h"
-#include "widgetfactory_p.h"
 #include "objects/editablesqlmodel.h"
 #include "objects/ebusdata.h"
 #include "objects/ebusdataentries.h"
@@ -11,29 +9,16 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QMessageBox>
-#include <QModbusDevice>
-#include <QSql>
-#include <QSqlError>
-#include <QSqlField>
-#include <QSqlQuery>
-#include <QSqlRecord>
-#include <QSqlRelationalTableModel>
-#include <QSqlRelationalDelegate>
 
+#include <QModbusDevice>
 #include <QDebug>
 
-WdgTest::WdgTest(EDesignerFormEditorInterface *core, EBusDataEntries *dataEntries, QWidget *parent) :
+WdgTest::WdgTest(EBusDataEntries *dataEntries, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::WdgTest),
-    m_core(core),
     m_dataEntries(dataEntries)
 {
     ui->setupUi(this);
-
-    ui->edtTimeout->setValidator(new QIntValidator(50, 10000, ui->edtTimeout));
-
-    initAddToolBox();
 }
 
 WdgTest::~WdgTest()
@@ -94,18 +79,15 @@ void setValidatorByTpye(QLineEdit *lineEdit, int decimals, QMetaType::Type type)
 
 void WdgTest::slUpdateModel()
 {
-    m_entryList.clear();
-
     ui->tableWidget->setRowCount(0);
 
-    int row = 0;
     foreach (EBusData *busData, m_dataEntries->allEntries()) {
-        if (busData)
-            m_entryList.append(busData);
-        else
+        if (!busData)
             continue;
 
+        int row = ui->tableWidget->rowCount();
         ui->tableWidget->insertRow(row);
+
         QTableWidgetItem *itemName = new QTableWidgetItem(QString("%1(%2)-%3")
                                                           .arg(busData->alias())
                                                           .arg(busData->startAddress())
@@ -118,7 +100,6 @@ void WdgTest::slUpdateModel()
 
         QLineEdit *edt = new QLineEdit;
         edt->setObjectName(itemName->text());
-        edt->setProperty("address", QVariant(busData->startAddress()));
 
         connect(edt, &QLineEdit::returnPressed, m_dataEntries, [=] {
             qint64 ival= edt->text().toLongLong();
@@ -131,32 +112,14 @@ void WdgTest::slUpdateModel()
                     ival = static_cast<int>((value * factor) - (float)(5.0 / factor));
             }
 
-            itemTest->setText(QString::number(ival));
+            qDebug() << QString::number(ival);
 
             busData->setTempData(ival);
             m_dataEntries->writeTempValueByEntry(busData);
         });
 
-//        connect(edt, &CustomLineEdit::validatedValue, this, &WdgTest::actualValueChanged);
-//        connect(edt, &CustomLineEdit::validatedValue, busData, &EBusData::setTempValue);
-//        connect(edt, &CustomLineEdit::validatedValue, busData, [busData](short value) {
-//            busData->changeData(value);
-//        });
-
-        connect(busData, &EBusData::dataChanged,  [this, busData, itemCurrent](QVariant data) {
+        connect(busData , &EBusData::dataChanged, [itemCurrent](QVariant data){
             itemCurrent->setText(data.toString());
-
-            int rc = ui->tableHistory->rowCount();
-            ui->tableHistory->insertRow(rc);
-            QTableWidgetItem *name = new QTableWidgetItem(QString("%1").arg(busData->alias()));
-            QTableWidgetItem *current = new QTableWidgetItem(data.toString());
-
-            ui->tableHistory->setItem(rc, 0, name);
-            ui->tableHistory->setItem(rc, 1, current);
-            ui->tableHistory->setRowHeight(rc, 25);
-
-            ui->tableHistory->scrollToBottom();
-
         });
 
         edt->setPlaceholderText("");
@@ -164,120 +127,13 @@ void WdgTest::slUpdateModel()
 
         setValidatorByTpye(edt, busData->precision(), busData->dataType());
 
+        ui->tableWidget->setColumnWidth(0, 350);
+        ui->tableWidget->setColumnWidth(1, 150);
+        ui->tableWidget->setColumnWidth(2, 150);
         ui->tableWidget->setItem(row, 0, itemName);
         ui->tableWidget->setItem(row, 1, itemCurrent);
         ui->tableWidget->setCellWidget(row, 2, edt);
         ui->tableWidget->setItem(row, 3, itemTest);
-        ui->tableWidget->setRowHeight(row++, 25);
+        ui->tableWidget->setRowHeight(row, 25);
     }
 }
-
-void WdgTest::initAddToolBox()
-{
-    QSqlDatabase db = QSqlDatabase::database(m_core->dbFile());
-
-    m_addModel = new QSqlRelationalTableModel(this, db);
-    m_addModel->setEditStrategy(QSqlTableModel::OnManualSubmit);
-    m_addModel->setTable("REGISTER");
-
-    modbusFuncIdx   = m_addModel->fieldIndex("MODBUS_FUNC_ID");
-    variantTypeIdx  = m_addModel->fieldIndex("VARIANT_ID");
-    unitIdx         = m_addModel->fieldIndex("UNIT_ID");
-
-    m_addModel->setRelation(modbusFuncIdx, QSqlRelation("MODBUS_FUNCTION", "ID", "NAME"));
-    m_addModel->setRelation(variantTypeIdx, QSqlRelation("VARIANT_TYPE", "ID", "DESCRIPTION"));
-    m_addModel->setRelation(unitIdx, QSqlRelation("UNITS", "ID", "UNIT"));
-
-    // Populate the model
-    if (!m_addModel->select()) {
-        showError(m_addModel->lastError());
-        return;
-    }
-
-    // -- Add
-    QSqlTableModel *modbusFuncModel = m_addModel->relationModel(modbusFuncIdx);
-    modbusFuncModel->setFilter(QString("ACTIVATED == '1'"));
-    ui->cmbAddModbusFunc->setModel(modbusFuncModel);
-    ui->cmbAddModbusFunc->setModelColumn(m_addModel->relationModel(modbusFuncIdx)->fieldIndex("NAME"));
-
-    QSqlTableModel *variantModel = m_addModel->relationModel(variantTypeIdx);
-    variantModel->setFilter(QString("AVAILABLE == '1'"));
-    ui->cmbAddVariantType->setModel(variantModel);
-    ui->cmbAddVariantType->setModelColumn(m_addModel->relationModel(variantTypeIdx)->fieldIndex("DESCRIPTION"));
-
-    ui->cmbAddUnit->setModel(m_addModel->relationModel(unitIdx));
-    ui->cmbAddUnit->setModelColumn(m_addModel->relationModel(unitIdx)->fieldIndex("UNIT"));
-}
-
-void WdgTest::showError(const QSqlError &err)
-{
-    QMessageBox::critical(this, "Unable to initialize Database",
-                "Error initializing database: " + err.text());
-}
-
-void WdgTest::on_btnAdd_clicked()
-{
-    int modbusFunc = m_addModel->relationModel(modbusFuncIdx)->index(ui->cmbAddModbusFunc->currentIndex(), m_addModel->relationModel(modbusFuncIdx)->fieldIndex("ID")).data().toInt();
-    int address = ui->edtAddAddress->text().trimmed().toInt();
-    QString name = ui->edtAddName->text().trimmed();
-    int variantTpye = m_addModel->relationModel(variantTypeIdx)->index(ui->cmbAddVariantType->currentIndex(), m_addModel->relationModel(variantTypeIdx)->fieldIndex("ID")).data().toInt();
-    int precision = ui->edtAddPrecision->text().trimmed().toInt();
-    int unit =  m_addModel->relationModel(unitIdx)->index(ui->cmbAddUnit->currentIndex(), m_addModel->relationModel(unitIdx)->fieldIndex("ID")).data().toInt();
-
-    if (name.isEmpty() ||
-        variantTpye == QMetaType::UnknownType)
-        return;
-
-    QSqlField fModbusFunc("MODBUS_FUNC_ID", QVariant::Int);
-    QSqlField fAddress("ADDRESS", QVariant::Int);
-    QSqlField fName("NAME", QVariant::String);
-    QSqlField fVariantType("VARIANT_ID", QVariant::Int);
-    QSqlField fPrecision("PRECISION", QVariant::Int);
-    QSqlField fUnit("UNIT_ID", QVariant::Int);
-
-    fModbusFunc.setValue(QVariant(modbusFunc));
-    fAddress.setValue(QVariant(address));
-    fName.setValue(QVariant(name));
-    fVariantType.setValue(QVariant(variantTpye));
-    fPrecision.setValue(QVariant(precision));
-    fUnit.setValue(QVariant(unit));
-
-    QSqlRecord record;
-    record.append(fModbusFunc);
-    record.append(fAddress);
-    record.append(fName);
-    record.append(fVariantType);
-    record.append(fPrecision);
-    record.append(fUnit);
-
-    m_addModel->database().transaction();
-    if (m_addModel->insertRecord(-1, record)) {
-        if (m_addModel->submitAll()) {
-            m_addModel->database().commit();
-        }
-        else {
-            m_addModel->database().rollback();
-            QMessageBox::warning(this, tr("Cached Table"),
-                                       tr("The database reported an error: %1").arg(m_addModel->lastError().text()));
-        }
-
-        emit sgCollectRegisters();
-    }
-    else
-        qDebug() << m_addModel->lastError() << "\n" <<m_addModel->lastError().text();
-}
-
-void WdgTest::on_btnStartStop_toggled(bool checked)
-{
-    if (checked) {
-        m_dataEntries->startReadContinuously(ui->edtTimeout->text().toInt());
-        ui->btnStartStop->setText(tr("STOP"));
-    }
-    else {
-        m_dataEntries->stopReadContinuously();
-        ui->btnStartStop->setText(tr("START"));
-    }
-
-    ui->edtTimeout->setDisabled(checked);
-}
-

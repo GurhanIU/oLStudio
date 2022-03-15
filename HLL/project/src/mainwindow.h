@@ -7,8 +7,6 @@
 #include <QModbusDataUnit>
 #include <QVariant>
 
-#include "objects/edata.h"
-
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -102,7 +100,6 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    EDesignerFormEditorInterface *m_core;
     CloseEventPolicy m_policy;
 
     QModbusClient *m_modbus;
@@ -126,6 +123,7 @@ private:
     QString m_dbFile;
 
     void disconnectAndDelete();
+
 private slots:
     void showSettingsModbusRTU();
 //    void showSettingsModbusTCP();
@@ -160,21 +158,9 @@ private slots:
     void slWriteAllToDevice();
     void slReadAllFromDevice();
 
-    // Custom
-    void slShowAddress();
-    void slShowParameter();
-    void slAlarmConfig();
-    void slShowAddressType();
-    void slShowPairTypeRegister();
-    void slShowMenu();
-    void slShowPageUtil();
-    void slShowPairMenuPage();
-    void slShowPairRegisterPage();
-
     void slCollectRegisters();
+    void slStartStop(bool toggle);
 
-    void slPageChanged(const QString &name, const int &id);
-    void slActualChanged(int value, int registerId);
     void slActualChanged(QVariant data);
     void callCreateForm();
     void slUpdateStatusBar(const QString &caption, const QString &text, int timeout = 5000);
