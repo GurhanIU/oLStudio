@@ -19,9 +19,9 @@ public:
     };
     Q_DECLARE_FLAGS(Mode, ModeFlag)
 
-    explicit EBusData(int registerId, int startAddress, QVariant data, int precision = 0, const QString &alias = QString(), const QString &unit = QString(), QObject *parent = nullptr);
+    explicit EBusData(int registerId, int startAddress, QVariant::Type type, int precision = 0, const QString &alias = QString(), const QString &unit = QString(), QObject *parent = nullptr);
 
-    explicit EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, QVariant data, int precision, const QString &alias, const QString &unit, QObject *parent = nullptr);
+    explicit EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, QVariant::Type vType, int precision, const QString &alias, const QString &unit, QObject *parent = nullptr);
 
     virtual ~EBusData();
 
@@ -31,7 +31,7 @@ public:
 
     int registerId() const { return m_registerId; }
 
-    QMetaType::Type dataType() const { return (QMetaType::Type)m_dataType; }
+    QVariant::Type dataType() const { return m_dataType; }
     QString dataTypeName() const { return QMetaType::typeName(m_dataType); }
 
     QString alias() const { return m_alias; }
@@ -48,12 +48,12 @@ public:
     QModbusDataUnit::RegisterType registerType() const { return m_registerType; }
 
     QVariant data() const;
-    void setData(QVariant data);
+    void setData(const QVariant &data);
 
     inline int startAddress() const { return m_startAddress; }
 
     bool isValid() const { return   m_registerType != QModbusDataUnit::Invalid
-                                    && m_dataType != QMetaType::UnknownType
+               && m_dataType != QVariant::Type::Invalid /*QMetaType::UnknownType*/
                                     && m_startAddress != -1; }
 
     const QString &unit() const;
@@ -65,14 +65,17 @@ public:
     QString toString() const;
     QString toFormattedString() const;
 
+    qint64 timeStamp() const;
+    void setTimeStamp(qint64 newTimeStamp);
+
 private:
     Mode m_mode;
     QModbusDataUnit::RegisterType m_registerType;
-    uint m_dataType = QMetaType::UnknownType; // QMetaType::Type bilgisi //    QMetaType::Type m_metaType;
+    QVariant::Type m_dataType = QVariant::Type::Invalid; //QMetaType::UnknownType; // QMetaType::Type bilgisi //    QMetaType::Type m_metaType;
     int m_registerId;
 
     int m_startAddress  = -1; // adres listesinin ilk adresi olsun.
-    uint m_precision = 0;
+    int m_precision = 0;
     QString m_alias;
     QString m_unit;
 
@@ -82,15 +85,17 @@ private:
     QVariant m_tempData;
     QVector<quint16> m_tempValues;
 
+    qint64 m_timeStamp;
+
     inline void setMode(const Mode &mode) { m_mode = mode; }
     inline void setRegisterType(const QModbusDataUnit::RegisterType &registerType) { m_registerType = registerType; }
     inline void setRegisterId(int registerId) { m_registerId = registerId; }
     inline void setStartAddress(int newAddress) { m_startAddress = newAddress; }
-    inline bool setDataType(uint type);
+    inline bool setDataType(QVariant::Type type);
 
 signals:
-    void dataChanged(QVariant data);
-    void dataTypeChanged(QMetaType::Type type);
+    void dataChanged(const QVariant &data);
+    void dataTypeChanged(QVariant::Type type);
     void sgMessage(const QString &caption, const QString &text, int timeout = 0);
 };
 

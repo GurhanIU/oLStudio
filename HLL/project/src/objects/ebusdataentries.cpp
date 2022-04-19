@@ -2,16 +2,17 @@
 
 #include "ebusdata.h"
 
+#include <QDateTime>
 #include <QMessageBox>
 #include <QModbusClient>
 
 #include <QDebug>
 
 EBusDataEntries::EBusDataEntries(QModbusClient *modbus, int device, QObject *parent) :
+    QObject(parent),
     m_modbus(modbus),
     m_device(device),
-    m_registerType(QModbusDataUnit::Invalid),
-    QObject(parent)
+    m_registerType(QModbusDataUnit::Invalid)
 {
     init();
 }
@@ -44,11 +45,11 @@ EBusDataEntries::EntryList EBusDataEntries::allEntries()
  * @param alias
  * @return Parent object has not address return true, else return false
  */
-EBusData * EBusDataEntries::addEntry(int registerId, int address, QVariant data, int precision, const QString &alias, const QString &unit)
+EBusData * EBusDataEntries::addEntry(int registerId, int address, QVariant::Type type, int precision, const QString &alias, const QString &unit)
 {
     EBusData *entry;
     if (!hasEntry(address)) {
-        entry = new EBusData(m_registerType, registerId, address, data, precision, alias, unit, this);
+        entry = new EBusData(m_registerType, registerId, address, type, precision, alias, unit, this);
         entry->setAlias(alias);
 
         connect(entry, &EBusData::sgMessage, this, &EBusDataEntries::sgMessage);
@@ -139,14 +140,17 @@ void EBusDataEntries::readReady()
     if (reply->error() == QModbusDevice::NoError) {
         const QModbusDataUnit unit = reply->result();
 
+        qint64 timeStamp = QDateTime::currentMSecsSinceEpoch();
+
         for (uint i = 0; i < unit.valueCount(); i++) {
             EBusData *busData = entry(unit.startAddress() + i);
+            busData->setTimeStamp(timeStamp);
 
             // Her EBusData::dataCount a bakilarak atama yapilacak
             // Eger 4 byte lik bir degisken ise i fazladan artirilacak
 
             if (busData) {
-                QMetaType::Type dType = busData->dataType();
+                QMetaType::Type dType = static_cast<QMetaType::Type>(busData->dataType());
 
                 if (dType == QMetaType::UnknownType)
                     continue;

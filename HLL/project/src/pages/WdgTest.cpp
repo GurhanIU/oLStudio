@@ -47,25 +47,29 @@ void WdgTest::slModbusStateChanged(int state)
     }
 }
 
-void setValidatorByTpye(QLineEdit *lineEdit, int decimals, QMetaType::Type type)
+void setValidatorByTpye(QLineEdit *lineEdit, int decimals, QVariant::Type type)
 {
-    int min = type == QMetaType::Char   ? std::numeric_limits<qint8>::min() :
-                 type == QMetaType::UChar  ? std::numeric_limits<quint8>::min() :
-                 type == QMetaType::Short  ? std::numeric_limits<qint16>::min() :
-                 type == QMetaType::UShort ? std::numeric_limits<quint16>::min() :
-                 type == QMetaType::Int    ? std::numeric_limits<qint32>::min() :
-                 type == QMetaType::UInt   ? std::numeric_limits<quint32>::min() :
-                 type == QMetaType::Long   ? std::numeric_limits<qint32>::min() :
-                                             std::numeric_limits<quint32>::min();
+    Q_UNUSED(decimals)
 
-    int max = type == QMetaType::Char   ? std::numeric_limits<qint8>::max() :
-                 type == QMetaType::UChar  ? std::numeric_limits<quint8>::max() :
-                 type == QMetaType::Short  ? std::numeric_limits<qint16>::max() :
-                 type == QMetaType::UShort ? std::numeric_limits<quint16>::max() :
-                 type == QMetaType::Int    ? std::numeric_limits<qint32>::max() :
-                 type == QMetaType::UInt   ? std::numeric_limits<quint32>::max() :
-                 type == QMetaType::Long   ? std::numeric_limits<qint32>::max() :
-                                             std::numeric_limits<quint32>::max();
+    QMetaType::Type mType = static_cast<QMetaType::Type>(type);
+
+    int min = mType == QMetaType::Char   ? std::numeric_limits<qint8>::min() :
+              mType == QMetaType::UChar  ? std::numeric_limits<quint8>::min() :
+              mType == QMetaType::Short  ? std::numeric_limits<qint16>::min() :
+              mType == QMetaType::UShort ? std::numeric_limits<quint16>::min() :
+              mType == QMetaType::Int    ? std::numeric_limits<qint32>::min() :
+              mType == QMetaType::UInt   ? std::numeric_limits<quint32>::min() :
+              mType == QMetaType::Long   ? std::numeric_limits<qint32>::min() :
+                                          std::numeric_limits<quint32>::min();
+
+    int max = mType == QMetaType::Char   ? std::numeric_limits<qint8>::max() :
+              mType == QMetaType::UChar  ? std::numeric_limits<quint8>::max() :
+              mType == QMetaType::Short  ? std::numeric_limits<qint16>::max() :
+              mType == QMetaType::UShort ? std::numeric_limits<quint16>::max() :
+              mType == QMetaType::Int    ? std::numeric_limits<qint32>::max() :
+              mType == QMetaType::UInt   ? std::numeric_limits<quint32>::max() :
+              mType == QMetaType::Long   ? std::numeric_limits<qint32>::max() :
+                                          std::numeric_limits<quint32>::max();
 
     qDebug() << lineEdit->objectName() << min << max;
 
@@ -93,7 +97,7 @@ void WdgTest::slUpdateModel()
                                                           .arg(busData->startAddress())
                                                           .arg(busData->dataTypeName()));
         QTableWidgetItem *itemCurrent = new QTableWidgetItem(QString("- %1").arg(busData->unit()));
-        QTableWidgetItem *itemTest = new QTableWidgetItem("");
+//        QTableWidgetItem *itemTest = new QTableWidgetItem("");
 
         QString sFactor = "1";
         int factor = sFactor.leftJustified(busData->precision() +1, QChar('0')).toInt();
@@ -118,7 +122,7 @@ void WdgTest::slUpdateModel()
             m_dataEntries->writeTempValueByEntry(busData);
         });
 
-        connect(busData , &EBusData::dataChanged, [itemCurrent](QVariant data){
+        connect(busData, &EBusData::dataChanged, [itemCurrent](QVariant data){
             itemCurrent->setText(data.toString());
         });
 
@@ -133,7 +137,7 @@ void WdgTest::slUpdateModel()
         ui->tableWidget->setItem(row, 0, itemName);
         ui->tableWidget->setItem(row, 1, itemCurrent);
         ui->tableWidget->setCellWidget(row, 2, edt);
-        ui->tableWidget->setItem(row, 3, itemTest);
+//        ui->tableWidget->setItem(row, 3, itemTest);
         ui->tableWidget->setRowHeight(row, 25);
     }
 }

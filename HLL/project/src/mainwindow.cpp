@@ -22,6 +22,8 @@
 #include <QProgressBar>
 #include <QTimer>
 #include <QVariant>
+#include <QDateTime>
+
 #include <QDebug>
 
 #include "version.h"
@@ -40,6 +42,62 @@
 
 #include "objects/ebusdata.h"
 #include "objects/ebusdataentries.h"
+
+namespace TestCode {
+// ------- Test Code------------------//
+///
+/// \brief The A class copy ctor is and copy assignment deleted by compiler.
+///
+class A {
+public:
+    A() = default;
+    A(A&&) = default;
+    A& operator=(A &&) = default;
+
+    int k() const { return m_k; }
+    void setK(int k) { m_k = k; }
+
+private:
+    int m_k;
+};
+
+///
+/// \brief The Myclass class have a A m_ax variable that init by an A object with move semantics.
+///
+class Myclass {
+public:
+    Myclass(A x) : m_ax(std::move(x)) {}
+private:
+    A m_ax;
+};
+
+void testCode(int y)
+{
+    A a;
+    a.setK(5);
+    auto f = [x = std::move(a)](int y) { qDebug() << "Test Code:" << __PRETTY_FUNCTION__ << x.k() * y;};
+
+    f(y);
+}
+
+// ------- Test Code------------------//
+};
+
+QVariantMap toVMap(const EBusData *data)
+{
+    QVariantMap v;
+    v.insert("registerId", data->registerId());
+    v.insert("data", data->data());
+    v.insert("timeStamp", data->timeStamp());
+    return v;
+}
+
+void fromVMap(const QVariantMap &qvm)
+{
+    /*url_        =*/ qvm.contains("registerId") ? qvm.value("registerId").toInt() : 0;
+    /*uuid_       =*/ qvm.contains("data") ? qvm.value("data") : QVariant();
+    /*metadata_   =*/ qvm.contains("timeStamp") ? qvm.value("timeStamp").toLongLong() : 0;
+}
 
 // ---------------- MainWindowBase
 
@@ -146,8 +204,7 @@ bool DockedMdiArea::event(QEvent *event)
         QDropEvent *e = static_cast<QDropEvent*>(event);
         const QStringList files = uiFiles(e->mimeData());
         const QStringList::const_iterator cend = files.constEnd();
-        for (QStringList::const_iterator it = files.constBegin(); it != cend; ++it)
-        {
+        for (QStringList::const_iterator it = files.constBegin(); it != cend; ++it) {
             emit fileDropped(*it);
         }
         e->acceptProposedAction();
@@ -164,12 +221,14 @@ bool DockedMdiArea::event(QEvent *event)
 
 MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
     QMainWindow(parent),
-    m_policy(EmitCloseEventSignal),
     ui(new Ui::MainWindow),
+    m_policy(EmitCloseEventSignal),
     m_modbus(nullptr),
     m_modbusCommSettings(new  ModbusCommSettings("qModMaster.ini"))
 {
     ui->setupUi(this);
+
+    TestCode::testCode(6);
 
     setWindowTitle(QString("%1").arg(VER_PRODUCTNAME_STR));
 
@@ -203,9 +262,8 @@ MainWindow::MainWindow(const QStringList &args, QWidget *parent) :
     connect(ui->actionAbout,SIGNAL(triggered()),m_dlgAbout,SLOT(show()));
 
     m_dlgModbusRTU = new SettingsModbusRTU(this,m_modbusCommSettings);
-    connect(ui->actionSerial_RTU,SIGNAL(triggered()),this,SLOT(showSettingsModbusRTU()));
+    connect(ui->actionSerial_RTU, SIGNAL(triggered()), this, SLOT(showSettingsModbusRTU()));
 
-    m_dlgSettings = new Settings(this,m_modbusCommSettings);
 //    connect(ui->actionSettings,SIGNAL(triggered()),this,SLOT(showSettings()));
 //    m_busMonitor = new BusMonitor(this, m_modbus->rawModel);
 //    connect(ui->actionBus_Monitor,SIGNAL(triggered()),this,SLOT(showBusMonitor()));
@@ -316,6 +374,8 @@ void MainWindow::callCreateForm()
     ui->centralwidget->layout()->addWidget(entryBox);
 
     connect(topToolBox, &TopToolBox::sgStartStopToggled, this, &MainWindow::slStartStop);
+    connect(topToolBox, &TopToolBox::sgScanRateChanged, this, &MainWindow::slSaveScanRate);
+    connect(this, &MainWindow::sgUpdateTopToolBox, topToolBox, &TopToolBox::slChangeScanRate);
     connect(this, &MainWindow::sgRegistersCollected, page, &WdgTest::slUpdateModel);
     connect(entryBox, &EntryToolBox::sgCollectRegisters, this, &MainWindow::slCollectRegisters);
 
@@ -327,6 +387,7 @@ void MainWindow::callCreateForm()
     ui->actionOpenFile->setEnabled(false);
     onStateChanged(QModbusDevice::UnconnectedState);
     updateStatusBar();
+    emit sgUpdateTopToolBox(m_modbusCommSettings->scanRate());
 }
 
 void MainWindow::showSettingsModbusRTU()
@@ -335,30 +396,14 @@ void MainWindow::showSettingsModbusRTU()
 //        QLOG_TRACE()<<  "RTU settings changes accepted ";
         updateStatusBar();
         m_modbusCommSettings->saveSettings();
+        emit sgUpdateTopToolBox(m_modbusCommSettings->scanRate());
     }
 //    else
 //        QLOG_WARN()<<  "RTU settings changes rejected ";
 
 }
 
-void MainWindow::showSettings()
-{
-    //Show General Settings Dialog
-    m_dlgSettings->modbus_connected = false; // m_modbus->isConnected();
-    if (m_dlgSettings->exec() == QDialog::Accepted) {
-//        QLOG_TRACE()<<  "Settings changes accepted ";
-//        m_modbus->rawModel->setMaxNoOfLines(m_modbusCommSettings->maxNoOfLines().toInt());
-//        m_modbus->setTimeOut(m_modbusCommSettings->timeOut().toInt());
-//        ui->sbStartAddress->setMinimum(m_modbusCommSettings->baseAddr().toInt());
-        m_modbusCommSettings->saveSettings();
-    }
-//    else
-//        QLOG_WARN()<<  "Settings changes rejected ";
-
-    updateStatusBar();
-}
-
-void MainWindow::changedScanRate(int value)
+void MainWindow::slSaveScanRate(int value)
 {
     //Enable-Disable Time Interval
 //    QLOG_TRACE()<<  "ScanRate changed. Value = " << value;
@@ -378,7 +423,7 @@ void MainWindow::loadSession()
                                           "",
                                           tr("Configuraion Files (*.db);;All Files (*.*)"));
     //check
-     if (fName != ""){
+     if (fName != "") {
          m_modbusCommSettings->loadSession(fName);
          //Update UI
 //         ui->sbStartAddress->setMinimum(m_modbusCommSettings->baseAddr().toInt());
@@ -430,11 +475,12 @@ void MainWindow::closeEvent(QCloseEvent *e)
         for (int i = 0; i < windows.size(); ++i) {
             QWindow *window =  windows.at(i);
 
-            if( window->objectName() != "MainWindowWindow") {
+            if (window->objectName() != "MainWindowWindow") {
                 window->close();
 //                delete window;
             }
         }
+
         disconnectAndDelete();
         QSqlDatabase::database(m_dbFile).close();
         QSqlDatabase::removeDatabase(m_dbFile);
@@ -458,6 +504,7 @@ void MainWindow::disconnectAndDelete()
 {
     if (!m_modbus)
         return;
+
     m_modbus->disconnectDevice();
     m_modbus->disconnect();
     delete m_modbus;
@@ -520,7 +567,6 @@ void MainWindow::slCollectRegisters()
                 LEFT JOIN VARIANT_TYPE as vt ON r.VARIANT_ID = vt.ID \
                 LEFT JOIN MODBUS_FUNCTION AS mf ON r.MODBUS_FUNC_ID = mf.ID \
                 LEFT JOIN UNITS as u ON  r.UNIT_ID = u.ID \
-                LEFT JOIN REGISTER_OPTION  as ro ON r.ID = ro.REGISTER_ID \
                GROUP BY r.ID ORDER BY r.ADDRESS;");
 
     if (!qry.exec()) {
@@ -541,25 +587,19 @@ void MainWindow::slCollectRegisters()
 //    dataFactory.RegisterAllTypes();
 
     while (qry.next()) {
-        const QVariant::Type vtypeId = static_cast<QVariant::Type>(qry.value(vTypeIdx).toUInt());
-
-//        std::unique_ptr<EData> ee = dataFactory.Create(type);
-//        ee->setData(qry.value(pActualIdx));
-//        ee->print();
-
-        QVariant v(vtypeId);
-        qDebug() << v.typeName() << v.type() << v.isValid();
-
         EBusData *entry = m_modbusEntries->addEntry(qry.value(rIdIdx).toInt(),
                                                     qry.value(rAddressIdx).toInt(),
-                                                    v,
+                                                    static_cast<QVariant::Type>(qry.value(vTypeIdx).toUInt()),
                                                     qry.value(rPrecisonIdx).toInt(),
                                                     qry.value(rNameIdx).toString(),
                                                     qry.value(uUnitIdx).toString());
 
-        if (entry)
-            connect(entry, &EBusData::dataChanged,
-                    this, static_cast<void (MainWindow::*)(QVariant)>(&MainWindow::slActualChanged));
+//        if (entry)
+//        connect(entry, &EBusData::dataChanged, [entry](const QVariant &data){ // IIFE idiom
+        connect(entry, &EBusData::dataChanged, this, &MainWindow::slInsertLog);
+//        connect(entry, &EBusData::dataChanged, [entry](const QVariant &data){
+//            qDebug() << QDateTime::fromMSecsSinceEpoch(entry->timeStamp()).toString("hh:mm:ss") << data;
+//        });
     }
 
     emit sgRegistersCollected();
@@ -567,10 +607,29 @@ void MainWindow::slCollectRegisters()
 
 void MainWindow::slStartStop(bool toggle)
 {
-    if (toggle)
-        m_modbusEntries->startReadContinuously(300);
-    else
+    if (toggle) {
+        if (!m_queue.isEmpty())
+            m_queue.clear();
+        m_modbusEntries->startReadContinuously(m_modbusCommSettings->scanRate());
+    } else {
         m_modbusEntries->stopReadContinuously();
+
+        QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
+
+        qry.prepare("INSERT INTO LOG ( REGISTER_ID, VALUE,  TIMESTAMP) "
+                             "VALUES (:REGISTERID, :VALUE, :TIMESTAMP);");
+
+        while (!m_queue.isEmpty()) {
+            QVariantMap vMap = m_queue.dequeue();
+
+            qry.bindValue(":REGISTERID", vMap.contains("registerId") ? vMap.value("registerId").toInt() : 0);
+            qry.bindValue(":VALUE", vMap.contains("data") ? vMap.value("data") : QVariant());
+            qry.bindValue(":TIMESTAMP", vMap.contains("timeStamp") ? vMap.value("timeStamp").toLongLong() : 0);
+
+            if(!qry.exec())
+                qDebug() << QString("SQL Last Query:%1 \n\r Last Error: %2").arg(qry.lastQuery()).arg(qry.lastError().text());
+        }
+    }
 }
 
 QString MainWindow::dbFile() const
@@ -648,25 +707,19 @@ void MainWindow::updateStatusBar()
     m_statusText->setText(msg);
 }
 
-void MainWindow::slActualChanged(QVariant data)
-{
-    EBusData *busData = qobject_cast<EBusData*>(sender());
-
-    if (!busData)
-        return;
-
-    qDebug() << QString("%1(%2)").arg(busData->alias()).arg(busData->startAddress())
-             << data.toString() << busData->data();
-
-//    QSqlQuery qry = QSqlQuery(QSqlDatabase::database(m_dbFile));
-//    qry.prepare(QString("UPDATE PARAMETER SET ACTUAL_VALUE = %1 WHERE REGISTER_ID = %2")
-//                  .arg(data.toString())
-//                  .arg(busData->registerId()));
-//    qry.exec();
-}
-
 void MainWindow::slUpdateStatusBar(const QString &caption, const QString &text, int timeout)
 {
     timeout = timeout == 0 ? 5000 : timeout;
     statusBar()->showMessage(QString("%1: %2").arg(caption).arg(text), timeout);
+}
+
+void MainWindow::slInsertLog(const QVariant &data)
+{
+    Q_UNUSED(data)
+    if (EBusData *entry = static_cast<EBusData*>(sender())) {
+        QVariantMap vMap = toVMap(entry);
+//        qDebug() << vMap;
+
+        m_queue.enqueue(vMap);
+    }
 }

@@ -6,6 +6,7 @@
 #include <QMdiArea>
 #include <QModbusDataUnit>
 #include <QVariant>
+#include <QQueue>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -106,7 +107,6 @@ private:
 
     About *m_dlgAbout;
     SettingsModbusRTU *m_dlgModbusRTU;
-    Settings *m_dlgSettings;
 
     MenuBox *m_menuBox;
 
@@ -122,12 +122,12 @@ private:
 
     QString m_dbFile;
 
+    QQueue<QVariantMap> m_queue;
+
     void disconnectAndDelete();
 
 private slots:
     void showSettingsModbusRTU();
-//    void showSettingsModbusTCP();
-    void showSettings();
 //    void showBusMonitor();
 //    void showTools();
 //    void changedModbusMode(int currIndex);
@@ -135,7 +135,7 @@ private slots:
 //    void changedBase(int currIndex);
 //    void changedDecSign(bool value);
 //    void changedStartAddrBase(int currIndex);
-    void changedScanRate(int value);
+    void slSaveScanRate(int value);
     void changedConnect(bool value);
 //    void changedStartAddress(int value);
 //    void changedNoOfRegs(int value);
@@ -161,9 +161,10 @@ private slots:
     void slCollectRegisters();
     void slStartStop(bool toggle);
 
-    void slActualChanged(QVariant data);
     void callCreateForm();
     void slUpdateStatusBar(const QString &caption, const QString &text, int timeout = 5000);
+
+    void slInsertLog(const QVariant &data);
 protected:
     virtual void closeEvent(QCloseEvent *e);
 
@@ -172,6 +173,7 @@ signals:
     void sgProcessRange(int min, int max);
     void sgProcessValue(int step);
     void sgRegistersCollected();
+    void sgUpdateTopToolBox(int);
 };
 
 #endif // MAINWINDOW_H

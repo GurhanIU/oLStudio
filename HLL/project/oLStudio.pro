@@ -1,6 +1,6 @@
 #-------------------------------------------------
 #
-# Project created by QtCreator 2021-02-18T09:57:26
+# Project created by QtCreator 2021-02-18T19:57:26
 #
 # @author M.Gurhan SANCAR
 # @project OnLabStudio
@@ -16,10 +16,6 @@ CONFIG += c++14
 QMAKE_CXXFLAGS += -Wno-ignored-qualifiers
 QMAKE_CXXFLAGS += -std=c++11
 #QMAKE_CXXFLAGS += -std=gnu++11
-
-# You can make your code fail to compile if it uses deprecated APIs.
-# In order to do so, uncomment the following line.
-#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 UNDERSCORE = "_"
 DOT = "."
@@ -39,34 +35,12 @@ TARGET = $$NAME
 
 INCLUDEPATH += \
     forms
-#    shared \
-#    uilib \
-#    abstractions \
-#    components
-
-#include(src/shared/shared.pri)
-#include(src/uilib/uilib.pri)
-#include(src/abstractions/abstractions.pri)
-#include(src/components/components.pri)
-
-
 
 SOURCES += \
     src/forms/entrytoolbox.cpp \
     src/forms/settingsmodbusrtu.cpp \
     src/forms/settings.cpp \
     src/forms/about.cpp \
-#    src/etreewidget/abstractformeditor.cpp \
-#    src/etreewidget/abstractwidgetbox.cpp \
-#    src/etreewidget/abstractwidgetdatabase.cpp \
-#    src/etreewidget/edesigner_utils.cpp \
-#    src/etreewidget/edesignerwidgetbox.cpp \
-#    src/etreewidget/filterwidget.cpp \
-#    src/etreewidget/iconloader.cpp \
-#    src/etreewidget/sheet_delegate.cpp \
-#    src/etreewidget/widgetbox.cpp \
-#    src/etreewidget/widgetboxcategorylistview.cpp \
-#    src/etreewidget/widgetboxtreewidget.cpp \
     src/forms/toptoolbox.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
@@ -84,18 +58,6 @@ HEADERS += \ version.h \
     src/forms/about.h \
     src/forms/toptoolbox.h \
     src/mainwindow.h \
-#    src/etreewidget/abstractdnditem.h \
-#    src/etreewidget/abstractformeditor.h \
-#    src/etreewidget/abstractwidgetbox.h \
-#    src/etreewidget/abstractwidgetdatabase.h \
-#    src/etreewidget/edesigner_utils_p.h \
-#    src/etreewidget/edesigner_widgetbox_p.h \
-#    src/etreewidget/filterwidget_p.h \
-#    src/etreewidget/iconloader_p.h \
-#    src/etreewidget/sheet_delegate_p.h \
-#    src/etreewidget/widgetbox.h \
-#    src/etreewidget/widgetboxcategorylistview.h \
-#    src/etreewidget/widgetboxtreewidget.h \
     src/modbuscommsettings.h \
     src/initdb.h \
     src/objects/ebusdata.h \
@@ -114,7 +76,6 @@ FORMS += \
     src/pages/WdgTest.ui
 
 RESOURCES += \
-#    src/etreewidget/formeditor.qrc \
     src/icons/icons.qrc
 
 win32:LIBS += -lsetupapi -lwsock32 -lws2_32

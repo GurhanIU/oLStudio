@@ -26,7 +26,6 @@ SettingsModbusRTU::~SettingsModbusRTU()
 
 void SettingsModbusRTU::showEvent(QShowEvent * event)
 {
-
     //Load Settings
     ui->cmbDataBits->setEnabled(!modbus_connected);
     ui->cmbBaud->setEnabled(!modbus_connected);
@@ -59,16 +58,13 @@ void SettingsModbusRTU::showEvent(QShowEvent * event)
         ui->cmbParity->setCurrentIndex(ui->cmbParity->findText(m_settings->parity()));
         ui->cmbRTS->setCurrentIndex(ui->cmbRTS->findText(m_settings->RTS()));
         ui->edtScanRate->setText(QString::number(m_settings->scanRate()));
-
     }
 }
 
 void SettingsModbusRTU::changesAccepted()
 {
-
     //Save Settings
     if (m_settings != NULL) {
-
         m_settings->setSerialPort(QString::number(ui->sbPort->value()), ui->cmbDev->currentText());
         m_settings->setBaud(ui->cmbBaud->currentText());
         m_settings->setDataBits(ui->cmbDataBits->currentText());

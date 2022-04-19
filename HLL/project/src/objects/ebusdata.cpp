@@ -4,23 +4,23 @@
 #include <QDataStream>
 #include <QDebug>
 
-EBusData::EBusData(int registerId, int startAddress, QVariant data, int precision, const QString &alias, const QString &unit, QObject *parent)
-    : EBusData(QModbusDataUnit::Invalid, registerId, startAddress, data, precision, alias, unit, parent)
+EBusData::EBusData(int registerId, int startAddress, QVariant::Type type, int precision, const QString &alias, const QString &unit, QObject *parent)
+    : EBusData(QModbusDataUnit::Invalid, registerId, startAddress, type, precision, alias, unit, parent)
 {
     qDebug() << "ModbusData: qint8";
 }
 
-EBusData::EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, QVariant data, int precision, const QString &alias, const QString &unit, QObject *parent)
+EBusData::EBusData(QModbusDataUnit::RegisterType type, int registerId, int startAddress, QVariant::Type vType, int precision, const QString &alias, const QString &unit, QObject *parent)
     : QObject(parent),
     m_mode(ModeFlag::None),
     m_registerType(type),
-    m_dataType(data.type()),
+    m_dataType(vType),
     m_registerId(registerId),
-    m_data(data),
     m_startAddress(startAddress),
     m_precision(precision),
     m_alias(alias),
-    m_unit(unit)
+    m_unit(unit),
+    m_data(vType)
 {
     setObjectName(QString::number(startAddress));
     init();
@@ -101,9 +101,9 @@ QVector<quint16> &EBusData::tempVector()
     return m_tempValues;
 }
 
-bool EBusData::setDataType(uint type)
+bool EBusData::setDataType(QVariant::Type type)
 {
-    if (m_dataType == QMetaType::UnknownType) {
+    if (m_dataType == QVariant::Type::Invalid) {
         m_dataType = type;
         emit dataTypeChanged(dataType());
         return true;
@@ -112,10 +112,11 @@ bool EBusData::setDataType(uint type)
     return false;
 }
 
-void EBusData::setData(QVariant data)
+void EBusData::setData(const QVariant &data)
 {
     m_data = data;
-    emit dataChanged(m_data);
+
+    emit dataChanged(data);
 }
 
 //void EBusData::changeData(QMetaType::Type type, void *data)
@@ -149,4 +150,14 @@ QString EBusData::toFormattedString() const
     }
 
     return formatted;
+}
+
+qint64 EBusData::timeStamp() const
+{
+    return m_timeStamp;
+}
+
+void EBusData::setTimeStamp(qint64 newTimeStamp)
+{
+    m_timeStamp = newTimeStamp;
 }

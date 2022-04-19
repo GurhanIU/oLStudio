@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QModbusDataUnit>
 #include <QTimer>
+#include <QVariant>
 
 class EData;
 class EBusData;
@@ -24,7 +25,7 @@ public:
     void setDevice(int device);
 
     EBusData *entry(int address);
-    EBusData *addEntry(int registerId, int address, QVariant data, int precision = 0, const QString &alias = QString(), const QString &unit = QString());
+    EBusData *addEntry(int registerId, int address, QVariant::Type type, int precision = 0, const QString &alias = QString(), const QString &unit = QString());
 
     bool hasEntry(int address);
     bool hasEntry(EBusData *e);

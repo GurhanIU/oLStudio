@@ -89,7 +89,7 @@ border-style: inset;
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="edtTimeout">
+       <widget class="QLineEdit" name="edtScanRate">
         <property name="minimumSize">
          <size>
           <width>0</width>
